@@ -2,9 +2,11 @@
 
 A web application that displays various technical indicators for Bitcoin to help identify potential sell signals. The application calculates technical indicators and displays them in a user-friendly dashboard.
 
-![Bitcoin Indicator Dashboard Screenshot](btc-rsis.png)
+<a href="btc-rsis.png" target="_blank">
+  <img src="btc-rsis.png" alt="Bitcoin Indicator Dashboard Screenshot" height="400" />
+</a>
 
-*Screenshot of the Bitcoin Indicator Dashboard showing technical indicators and composite metrics*
+*Screenshot of the Bitcoin Indicator Dashboard showing technical indicators and composite metrics (click to view full size)*
 
 ## Project Origin
 
