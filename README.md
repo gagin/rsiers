@@ -1,326 +1,126 @@
-# Bitcoin Indicator Dashboard (v0.2.0)
+# Bitcoin Indicator Dashboard (v0.2.2 - Refactored Backend)
 
-A web application that displays various technical indicators for Bitcoin to help identify potential sell signals. The application calculates technical indicators and displays them in a user-friendly dashboard.
+A web application that displays various technical indicators for Bitcoin to help identify potential sell signals. The application fetches historical and recent data, calculates technical indicators, and displays them in a user-friendly dashboard.
 
 <a href="btc-rsis.png" target="_blank">
   <img src="btc-rsis.png" alt="Bitcoin Indicator Dashboard Screenshot" height="400" />
 </a>
 
-*Screenshot of the Bitcoin Indicator Dashboard showing technical indicators and composite metrics (click to view full size)*
+*Screenshot of the Bitcoin Indicator Dashboard (click to view full size)*
 
 ## Project Origin
-
-This project is vibecoded:
-- Original PRD created by Grok 3
-- Implementation by Augment using Sonnet 3.7
-
-The project demonstrates how AI can be used to create functional applications with minimal human intervention.
+This project is vibecoded: Original PRD by Grok 3, Implementation by Augment with Sonnet 3.7.
 
 ## Features
-
-- Displays key technical indicators for Bitcoin:
-  - Relative Strength Index (RSI)
-  - Stochastic RSI
-  - Money Flow Index (MFI)
-  - Connors RSI
-  - Williams %R
-  - Relative Vigor Index (RVI)
-  - Adaptive RSI
-- Shows both monthly and weekly values for all indicators
-- Provides composite metrics:
-  - Composite Overbought Score (COS)
-  - Bull Strength Index (BSI) - originally TSI, Trend Strength Index
-- Enhanced Time Machine feature:
-  - View indicators at any historical date using calendar control
-  - Shows what happened 1, 6, and 12 months after each point
-  - Includes 12 significant Bitcoin market events from 2011 to 2024
-  - Displays price changes and percentage movements
-  - Interpolates prices for custom dates
-- Foldable indicator table with detailed descriptions
-- Technical analysis explanation with sarcastic tone
-- Stores historical data in SQLite database
-- Automatically refreshes data every 5 minutes
-- Fallback to mock data when backend is unavailable
-- Clear visual indicator showing data source (Live Kraken Data, Mock Data, or Time Machine)
+- Displays key technical indicators for Bitcoin (RSI, with stubs for StochRSI, MFI, etc.)
+- Shows monthly and weekly values for all indicators.
+- Composite Metrics: Composite Overbought Score (COS) & Bull Strength Index (BSI).
+- Enhanced Time Machine: View indicators for historical dates using calendar control, with price outcomes.
+- Data Sources:
+    1.  Primary: Local CSV files (`./csv/`) for historical OHLCV data.
+    2.  Secondary: CoinGecko API for recent daily data (past 365 days) if not in CSV.
+    3.  Tertiary: Kraken API as a fallback if other sources fail.
+- Database: SQLite (`bitcoin_daily_data.db`) for storing daily OHLCV and calculated indicator sets.
+- Backend: Python/Flask, serving data and calculations, with a modular structure.
+- Frontend: Single-page React application.
+- Utility scripts for data management (CSV import, API loading, DB checks).
 
 ## Architecture
 
-The application consists of two main components:
+The application has been refactored for better maintainability:
 
-1. **Backend (Python/Flask)**
-   - Serves pre-calculated indicator data from SQLite database
-   - Provides API endpoints for the frontend
-   - Note: While the application includes code for fetching data from Kraken API, the current implementation primarily relies on pre-calculated historical data stored in `historical_data.json`
-
-2. **Frontend (HTML/JavaScript/React)**
-   - Displays the dashboard UI with a clean, modern interface
-   - Fetches data from the backend API
-   - Visualizes indicators and metrics
-   - Implements the Time Machine feature with calendar control
-   - Calculates price interpolations for custom dates
-   - Provides detailed descriptions for each indicator
+1.  **Backend (`backend/` directory)**:
+    *   `main.py`: Main Flask application serving API endpoints.
+    *   `db_utils.py`: Handles SQLite database interactions (schema, data storage/retrieval using 'YYYY-MM-DD' date strings).
+    *   `csv_data_loader.py`: Manages loading and querying data from local CSV files.
+    *   `api_clients.py`: Contains classes for interacting with CoinGecko and Kraken APIs.
+    *   `data_fetch_orchestrator.py`: Orchestrates data fetching from different sources (DB, CSV, APIs) and prepares data for indicator calculation.
+    *   `indicator_calculator.py`: Contains logic for technical indicator calculations (RSI implemented, others as stubs), resampling, composite scores, and price outcomes.
+2.  **Frontend (`index.html`)**:
+    *   React-based single-page application for UI and data visualization.
+3.  **Data Storage (`bitcoin_daily_data.db`)**:
+    *   SQLite database storing daily OHLCV prices (keyed by 'YYYY-MM-DD' strings) and calculated historical indicator sets.
+4.  **Primary Historical Data (`csv/` directory)**:
+    *   Contains CSV files (e.g., `XBTUSD_1440.csv`) with historical daily OHLCV data. This is the primary source for bulk historical data.
+5.  **Historical Events (`historical_data.json`)**:
+    *   JSON file with predefined significant market events for the Time Machine feature.
+6.  **Utility Scripts (`scripts/` directory)**:
+    *   `csv_importer.py`: Imports all data from CSV files in the `./csv/` directory into the database.
+    *   `api-loader.py`: Fetches data from APIs (CoinGecko/Kraken) to fill gaps not covered by CSVs for specified date ranges.
+    *   `db_checker.py`: Checks the database for missing daily data and can suggest `api-loader.py` commands to fill gaps.
+    *   `manual_data_filler.py`: Allows direct insertion of OHLCV data for specific dates (requires editing the script).
 
 ## Setup and Installation
 
 ### Prerequisites
-
-- Docker and Docker Compose (recommended for the most reliable setup)
-- Python 3.7+ (Python 3.12 recommended) if not using Docker
-- Make (optional, for using the Makefile)
-- Node.js (optional, for development)
+- Docker and Docker Compose (recommended)
+- Python 3.9+ (Python 3.12 recommended) if not using Docker
+- Pip (Python package installer)
+- Make (optional, for using Makefile convenience targets)
 
 ### Option 1: Using Docker (Recommended)
+Ensures consistency and avoids local environment issues.
+1.  Ensure Docker and Docker Compose are installed.
+2.  Run the start script: `/bin/bash docker-start.sh`
+    *   This builds the Docker image (using `backend/main.py` as the entry point for the backend service) and starts services.
+3.  Access:
+    *   Frontend: `http://localhost:8000`
+    *   Backend API: `http://localhost:5001`
+4.  Logs: `docker-compose logs -f` | Stop: `docker-compose down`
 
-This option uses Docker to run both the backend and frontend in containers. Docker is the recommended approach because:
+**Note for Docker:** Ensure your `Dockerfile` `CMD` is `["python", "backend/main.py"]` and `docker-compose.yml` backend service command is `python backend/main.py`.
 
-- It eliminates dependency and environment issues across different operating systems
-- Ensures consistent behavior regardless of your local Python setup
-- Avoids port conflicts with system services (like AirPlay on macOS)
-- No need to install Python packages or worry about version compatibility
+### Option 2: Using Makefile (Local Environment)
+1.  **Install Python dependencies:**
+    ```bash
+    make install
+    ```
+2.  **Database Setup & Initial Data Load (Run these once, or if DB is deleted):**
+    *   **(Important)** If you have an old `bitcoin_daily_data.db` with integer timestamps, **delete it manually first.**
+    *   Initialize the database (creates tables with new 'YYYY-MM-DD' date string schema):
+        ```bash
+        make init-db
+        ```
+    *   Import all data from your CSV files:
+        ```bash
+        make import-csv
+        ```
+3.  **Check for and fill remaining data gaps (Optional but recommended):**
+    *   Identify missing dates:
+        ```bash
+        make check-db 
+        ``` 
+        (This runs `db_checker.py --generate_commands`)
+    *   Use the suggested `python3 scripts/api-loader.py ...` commands to fill gaps, or use `make load-gaps` for an interactive approach.
+4.  **Run the application:**
+    ```bash
+    make run
+    ```
+    This starts `backend/main.py` and a simple frontend server.
 
-```bash
-# Make the script executable
-chmod +x docker-start.sh
+### Option 3: Manual Setup (Local Environment)
+1.  **Install Python dependencies:** `python3 -m pip install -r requirements.txt`
+2.  **Database Setup & Initial Data Load:**
+    *   **Delete any old `bitcoin_daily_data.db` file.**
+    *   Initialize DB: `python3 -c "from backend.db_utils import init_db; init_db()"`
+    *   Import CSVs: `python3 scripts/csv_importer.py`
+3.  **Fill Gaps (Optional):**
+    *   Check: `python3 scripts/db_checker.py --generate_commands`
+    *   Load: `python3 scripts/api-loader.py --start_date YYYY-MM-DD --days N` (as suggested by checker)
+4.  **Start Backend:** `python3 backend/main.py` (Terminal 1)
+5.  **Start Frontend:** `python3 -m http.server 8000` (Terminal 2, from project root)
 
-# Start the application
-./docker-start.sh
-```
-
-The script will:
-1. Check if Docker and Docker Compose are installed
-2. Build and start the containers
-3. Provide URLs to access the application
-
-Then access the application at http://localhost:8000
-
-To view logs:
-```bash
-docker-compose logs -f
-```
-
-To stop the application:
-```bash
-docker-compose down
-```
-
-### Option 2: Using Make
-
-The project includes a Makefile that simplifies installation and running the application:
-
-```bash
-# Install dependencies
-make install
-
-# Run both backend and frontend servers
-make run
-
-# Run only the frontend server (with mock data)
-make run-frontend
-
-# Run only the backend server
-make run-backend
-
-# Show all available commands
-make help
-```
-
-Then access the application at http://localhost:8000. If the backend is working correctly, you'll see "Live Kraken Data" in the footer, otherwise, it will show "Mock Data".
-
-### Option 2: Using Shell Scripts
-
-#### Frontend Only with Mock Data (Simplest)
-
-This option runs only the frontend with mock data, requiring no backend setup:
-
-```bash
-./start_frontend.sh
-```
-
-Then access the application at http://localhost:8000. The application will display mock data with an indicator showing "Mock Data" in the footer.
-
-#### Full Application with Backend
-
-This option runs both the backend and frontend servers:
-
-```bash
-./fix_and_run.sh
-```
-
-The script will:
-1. Install all required dependencies in your current Python environment
-2. Start a simple Flask backend server on port 5001 (avoiding conflicts with AirPlay on macOS)
-3. Start the frontend server on port 8000
-
-Then access the application at http://localhost:8000. If the backend is working correctly, you'll see "Live Kraken Data" in the footer.
-
-
-
-### Option 4: Manual Setup (Not Recommended)
-
-**Note:** The manual setup instructions are provided for completeness but are not thoroughly tested across all environments. Docker is strongly recommended for the most reliable experience.
-
-#### 1. Install the required Python packages:
-
-If you're using Conda:
-```bash
-conda install flask requests numpy pandas
-pip install flask-cors
-```
-
-If you're using system Python:
-```bash
-pip install flask flask-cors requests numpy pandas
-```
-
-**Note for Python 3.12 users:** Make sure to install numpy version 1.26.0 or higher:
-```bash
-pip install "numpy>=1.26.0"
-```
-
-#### 2. Start the backend server:
-```bash
-python simple_server.py
-```
-
-The server will run on http://localhost:5001
-
-#### 3. In a separate terminal, start the frontend server:
-```bash
-python -m http.server 8000
-```
-
-Then access the application at http://localhost:8000
-
-## API Endpoints
-
-- `GET /api/indicators` - Get the latest calculated indicators
-- `POST /api/refresh` - Manually trigger a data refresh
-
-## Data Storage
-
-The application uses SQLite for data storage with the following tables:
-
-- `monthly_ohlc` - Monthly OHLC data
-- `weekly_ohlc` - Weekly OHLC data
-- `indicators` - Calculated indicators
+### Utility Scripts
+Located in `scripts/`. Run from project root (e.g., `python3 scripts/script_name.py`).
+*   **`csv_importer.py`**: Populates `daily_ohlcv` from `./csv/`.
+*   **`db_checker.py`**: Checks for gaps in `daily_ohlcv`. Use `--generate_commands`.
+*   **`api-loader.py`**: Fills `daily_ohlcv` gaps using APIs for a date range.
+*   **`manual_data_filler.py`**: Manually insert specific OHLCV data (edit script first).
 
 ## Troubleshooting
-
-### "No module named 'numpy'" or Other Package Errors
-
-If you encounter dependency errors and are not using Docker, try the following solutions:
-
-1. **For Conda environments**:
-   ```bash
-   conda install numpy pandas flask requests
-   pip install flask-cors
-   ```
-
-2. **For system Python**:
-   ```bash
-   pip install wheel
-   pip install "numpy>=1.26.0"  # For Python 3.12 compatibility
-   pip install pandas
-   pip install flask
-   pip install flask-cors
-   pip install requests
-   ```
-
-3. **Python Version Compatibility**:
-   - The application has been updated to work with Python 3.12, which requires numpy 1.26.0+
-   - If you're using an older Python version (3.7-3.11), you may use older numpy versions
-   - To avoid dependency issues altogether, use the Docker setup
-
-### "Address already in use" Error on Port 5000 (macOS)
-
-On macOS, port 5000 is often used by the AirPlay Receiver service, which can cause conflicts when trying to run the Flask server.
-
-1. **Solution 1**: Use Docker (recommended)
-   - The Docker setup automatically handles port mapping and avoids conflicts
-
-2. **Solution 2**: Use the updated scripts
-   - The `fix_and_run.sh` script and `simple_server.py` have been updated to use port 5001 instead of 5000
-
-3. **Solution 3**: Disable AirPlay Receiver
-   - Go to System Preferences → General → AirDrop & Handoff
-   - Disable the 'AirPlay Receiver' service
-
-4. **Solution 4**: Manually specify a different port
-   - When running the Flask server manually, specify a different port:
-   ```bash
-   python app.py --port 5001
-   ```
-
-### "Mock Data" Indicator
-
-If you see "Mock Data" in the footer of the application, it means:
-1. The backend server is not running, or
-2. The backend server is not accessible from the frontend
-
-To fix this:
-1. Make sure the backend server is running on port 5001
-2. Check for any network or firewall issues
-3. Run the full application with `./fix_and_run.sh`
-
-Note: The application is designed to work with pre-calculated historical data stored in `historical_data.json`. While it includes code for fetching data from the Kraken API, the current implementation primarily uses this historical data and mock data for demonstration purposes. The "Live Kraken Data" indicator in the footer simply means the backend is successfully serving data, not necessarily that it's fetching real-time data from Kraken.
-
-### System-specific issues
-
-- **Windows**: Make sure you have the Microsoft Visual C++ Build Tools installed
-- **macOS**: You might need to install Xcode Command Line Tools
-- **Linux**: You might need to install python3-dev package
-
-## Using the Makefile
-
-The project includes a Makefile that simplifies common tasks. Here are the available commands:
-
-```bash
-# Show help and available commands
-make help
-
-# Install dependencies
-make install
-
-# Run both backend and frontend servers
-make run
-
-# Run only the frontend server (with mock data)
-make run-frontend
-
-# Run only the backend server
-make run-backend
-
-# Clean up temporary files and database
-make clean
-
-# Run tests to check if the backend is working
-make test
-```
-
-You can also customize the behavior using environment variables:
-
-```bash
-# Use a specific Python interpreter
-PYTHON=python3.9 make run
-
-# Use different ports
-BACKEND_PORT=5002 FRONTEND_PORT=8080 make run
-```
-
-## Future Improvements
-
-- Add more technical indicators
-- Implement user authentication
-- Add historical charts for each indicator
-- Create alert system for overbought conditions
-- Improve error handling and retry logic
-- Add unit tests
-- Add support for more cryptocurrencies
-- Implement a more robust backend with scheduled data collection
-- Add export functionality for indicator data
-- Create mobile-responsive design for better mobile experience
-- Implement WebSockets for real-time updates
-
-## License
-
-MIT
+- **"No module named 'backend.xxx'"**: Run Python commands from the project root. `PYTHONPATH` might need adjustment if running scripts directly from subdirectories in complex setups.
+- **Database Schema Issues**: If SQLite errors like "no such column" or type mismatches occur after code changes, the recommended fix is to:
+    1. Delete `bitcoin_daily_data.db`.
+    2. Run `make init-db` (or its Python equivalent).
+    3. Re-run `make import-csv`.
+- **API Rate Limiting**: The system has basic retry and delay logic. For extensive backfilling, run `api-loader.py` in smaller batches for `--days`.
