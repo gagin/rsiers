@@ -2,6 +2,10 @@
 
 A web application that displays various technical indicators for Bitcoin to help identify potential sell signals. The application fetches data from the Kraken API, calculates technical indicators, and displays them in a user-friendly dashboard.
 
+![Bitcoin Indicator Dashboard Screenshot](btc-rsis.png)
+
+*Screenshot of the Bitcoin Indicator Dashboard showing technical indicators and composite metrics*
+
 ## Features
 
 - Fetches real-time Bitcoin price data from the Kraken API
@@ -42,9 +46,36 @@ The application consists of two main components:
 ### Prerequisites
 
 - Python 3.7+ (Python 3.12 recommended)
+- Conda environment (recommended) or system Python
+- Make (optional, for using the Makefile)
 - Node.js (optional, for development)
 
-### Option 1: Frontend Only with Mock Data (Simplest)
+### Option 1: Using Make (Recommended)
+
+The project includes a Makefile that simplifies installation and running the application:
+
+```bash
+# Install dependencies
+make install
+
+# Run both backend and frontend servers
+make run
+
+# Run only the frontend server (with mock data)
+make run-frontend
+
+# Run only the backend server
+make run-backend
+
+# Show all available commands
+make help
+```
+
+Then access the application at http://localhost:8000. If the backend is working correctly, you'll see "Live Kraken Data" in the footer, otherwise, it will show "Mock Data".
+
+### Option 2: Using Shell Scripts
+
+#### Frontend Only with Mock Data (Simplest)
 
 This option runs only the frontend with mock data, requiring no backend setup:
 
@@ -54,7 +85,7 @@ This option runs only the frontend with mock data, requiring no backend setup:
 
 Then access the application at http://localhost:8000. The application will display mock data with an indicator showing "Mock Data" in the footer.
 
-### Option 2: Full Application with Backend
+#### Full Application with Backend
 
 This option runs both the backend and frontend servers:
 
@@ -63,7 +94,7 @@ This option runs both the backend and frontend servers:
 ```
 
 The script will:
-1. Install all required dependencies
+1. Install all required dependencies in your current Python environment
 2. Start a simple Flask backend server on port 5001 (avoiding conflicts with AirPlay on macOS)
 3. Start the frontend server on port 8000
 
@@ -71,33 +102,27 @@ Then access the application at http://localhost:8000. If the backend is working 
 
 ### Option 3: Manual Setup
 
-#### 1. Create and activate a virtual environment:
+#### 1. Install the required Python packages:
 
-##### On macOS/Linux:
+If you're using Conda (recommended):
 ```bash
-python -m venv venv
-source venv/bin/activate
+conda install flask requests numpy pandas
+pip install flask-cors
 ```
 
-##### On Windows:
-```bash
-python -m venv venv
-venv\Scripts\activate
-```
-
-#### 2. Install the required Python packages:
+If you're using system Python:
 ```bash
 pip install flask flask-cors requests numpy pandas
 ```
 
-#### 3. Start the backend server:
+#### 2. Start the backend server:
 ```bash
 python simple_server.py
 ```
 
 The server will run on http://localhost:5001
 
-#### 4. In a separate terminal, start the frontend server:
+#### 3. In a separate terminal, start the frontend server:
 ```bash
 python -m http.server 8000
 ```
@@ -123,13 +148,13 @@ The application uses SQLite for data storage with the following tables:
 
 If you encounter dependency errors, try the following solutions:
 
-1. **Run the direct installation script**:
+1. **For Conda environments (recommended)**:
    ```bash
-   python install_dependencies.py
+   conda install numpy pandas flask requests
+   pip install flask-cors
    ```
-   This script will install all dependencies directly, bypassing pip's dependency resolution.
 
-2. **Manual installation**:
+2. **For system Python**:
    ```bash
    pip install wheel
    pip install numpy
@@ -177,6 +202,43 @@ To fix this:
 - **Windows**: Make sure you have the Microsoft Visual C++ Build Tools installed
 - **macOS**: You might need to install Xcode Command Line Tools
 - **Linux**: You might need to install python3-dev package
+
+## Using the Makefile
+
+The project includes a Makefile that simplifies common tasks. Here are the available commands:
+
+```bash
+# Show help and available commands
+make help
+
+# Install dependencies
+make install
+
+# Run both backend and frontend servers
+make run
+
+# Run only the frontend server (with mock data)
+make run-frontend
+
+# Run only the backend server
+make run-backend
+
+# Clean up temporary files and database
+make clean
+
+# Run tests to check if the backend is working
+make test
+```
+
+You can also customize the behavior using environment variables:
+
+```bash
+# Use a specific Python interpreter
+PYTHON=python3.9 make run
+
+# Use different ports
+BACKEND_PORT=5002 FRONTEND_PORT=8080 make run
+```
 
 ## Future Improvements
 

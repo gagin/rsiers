@@ -1,19 +1,31 @@
 #!/bin/bash
 
 # This script will:
-# 1. Install dependencies directly
+# 1. Install dependencies directly into your current Python environment
 # 2. Create a simple Flask server with mock data
 # 3. Start both the backend and frontend servers
 
-# Install dependencies directly
-echo "Installing dependencies directly..."
-pip install flask flask-cors requests numpy pandas
+# Detect if using Conda
+if [ -n "$CONDA_PREFIX" ]; then
+  echo "Conda environment detected: $CONDA_PREFIX"
+  echo "Installing dependencies with Conda and pip..."
+  conda install -y flask requests numpy pandas
+  pip install flask-cors
+else
+  echo "Using system Python. Installing dependencies with pip..."
+  pip install flask flask-cors requests numpy pandas
+fi
 
 # Check if installation was successful
 python -c "import flask, flask_cors, requests, numpy, pandas" 2>/dev/null
 if [ $? -ne 0 ]; then
   echo "Failed to install dependencies. Please install them manually:"
-  echo "pip install flask flask-cors requests numpy pandas"
+  if [ -n "$CONDA_PREFIX" ]; then
+    echo "conda install flask requests numpy pandas"
+    echo "pip install flask-cors"
+  else
+    echo "pip install flask flask-cors requests numpy pandas"
+  fi
   exit 1
 fi
 
