@@ -108,10 +108,27 @@ FRONTEND_PID=$!
 
 # Function to handle script termination
 function cleanup {
-  echo "Stopping servers..."
-  kill $BACKEND_PID
-  kill $FRONTEND_PID
-  exit
+  echo "Stopping servers gracefully..."
+  # Send TERM signal to allow graceful shutdown
+  kill -TERM $BACKEND_PID 2>/dev/null
+  kill -TERM $FRONTEND_PID 2>/dev/null
+
+  # Wait a moment for processes to clean up
+  sleep 1
+
+  # Check if processes are still running and force kill if needed
+  if ps -p $BACKEND_PID > /dev/null 2>&1; then
+    echo "Force killing backend process..."
+    kill -9 $BACKEND_PID 2>/dev/null
+  fi
+
+  if ps -p $FRONTEND_PID > /dev/null 2>&1; then
+    echo "Force killing frontend process..."
+    kill -9 $FRONTEND_PID 2>/dev/null
+  fi
+
+  echo "Shutdown complete."
+  exit 0
 }
 
 # Set up trap to catch termination signals

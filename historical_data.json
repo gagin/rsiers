@@ -1,0 +1,772 @@
+{
+  "timePoints": [
+    {
+      "id": 1,
+      "date": "2011-06-08",
+      "name": "First Major Peak",
+      "price": 29.6,
+      "description": "Bitcoin's first significant price peak after growing from less than $1",
+      "outcomes": {
+        "1M": {
+          "direction": "down",
+          "percentage": -68.2,
+          "price": 9.4
+        },
+        "6M": {
+          "direction": "down",
+          "percentage": -93.2,
+          "price": 2.0
+        },
+        "12M": {
+          "direction": "up",
+          "percentage": 60.8,
+          "price": 47.6
+        }
+      },
+      "indicators": {
+        "rsi": {
+          "monthly": 92,
+          "weekly": 95
+        },
+        "stochRsi": {
+          "monthly": 98,
+          "weekly": 99
+        },
+        "mfi": {
+          "monthly": 94,
+          "weekly": 96
+        },
+        "crsi": {
+          "monthly": 97,
+          "weekly": 98
+        },
+        "williamsR": {
+          "monthly": -5,
+          "weekly": -3
+        },
+        "rvi": {
+          "monthly": 0.92,
+          "weekly": 0.95
+        },
+        "adaptiveRsi": {
+          "monthly": 93,
+          "weekly": 96
+        }
+      },
+      "compositeMetrics": {
+        "cos": {
+          "monthly": 113.97698412698414,
+          "weekly": 115.0027777777778
+        },
+        "tsi": {
+          "monthly": 100,
+          "weekly": 100
+        }
+      }
+    },
+    {
+      "id": 2,
+      "date": "2013-04-10",
+      "name": "2013 First Peak",
+      "price": 230.0,
+      "description": "First peak of 2013 after breaking $100 for the first time",
+      "outcomes": {
+        "1M": {
+          "direction": "down",
+          "percentage": -71.7,
+          "price": 65.0
+        },
+        "6M": {
+          "direction": "up",
+          "percentage": 378.3,
+          "price": 1100.0
+        },
+        "12M": {
+          "direction": "down",
+          "percentage": -39.1,
+          "price": 140.0
+        }
+      },
+      "indicators": {
+        "rsi": {
+          "monthly": 89,
+          "weekly": 92
+        },
+        "stochRsi": {
+          "monthly": 95,
+          "weekly": 97
+        },
+        "mfi": {
+          "monthly": 90,
+          "weekly": 93
+        },
+        "crsi": {
+          "monthly": 94,
+          "weekly": 96
+        },
+        "williamsR": {
+          "monthly": -7,
+          "weekly": -5
+        },
+        "rvi": {
+          "monthly": 0.88,
+          "weekly": 0.91
+        },
+        "adaptiveRsi": {
+          "monthly": 90,
+          "weekly": 93
+        }
+      },
+      "compositeMetrics": {
+        "cos": {
+          "monthly": 111.14246031746032,
+          "weekly": 113.05119047619047
+        },
+        "tsi": {
+          "monthly": 100,
+          "weekly": 100
+        }
+      }
+    },
+    {
+      "id": 3,
+      "date": "2013-12-04",
+      "name": "2013 All-Time High",
+      "price": 1147.25,
+      "description": "Second peak of 2013, reaching over $1,000 for the first time",
+      "outcomes": {
+        "1M": {
+          "direction": "down",
+          "percentage": -39.5,
+          "price": 693.0
+        },
+        "6M": {
+          "direction": "down",
+          "percentage": -67.3,
+          "price": 375.0
+        },
+        "12M": {
+          "direction": "down",
+          "percentage": -76.2,
+          "price": 273.0
+        }
+      },
+      "indicators": {
+        "rsi": {
+          "monthly": 91,
+          "weekly": 94
+        },
+        "stochRsi": {
+          "monthly": 97,
+          "weekly": 99
+        },
+        "mfi": {
+          "monthly": 92,
+          "weekly": 95
+        },
+        "crsi": {
+          "monthly": 96,
+          "weekly": 98
+        },
+        "williamsR": {
+          "monthly": -6,
+          "weekly": -4
+        },
+        "rvi": {
+          "monthly": 0.9,
+          "weekly": 0.93
+        },
+        "adaptiveRsi": {
+          "monthly": 92,
+          "weekly": 95
+        }
+      },
+      "compositeMetrics": {
+        "cos": {
+          "monthly": 112.97976190476192,
+          "weekly": 114.88849206349205
+        },
+        "tsi": {
+          "monthly": 100,
+          "weekly": 100
+        }
+      }
+    },
+    {
+      "id": 4,
+      "date": "2015-01-14",
+      "name": "2015 Bottom",
+      "price": 152.4,
+      "description": "Major bottom after the 2013 crash, down 87% from all-time high",
+      "outcomes": {
+        "1M": {
+          "direction": "up",
+          "percentage": 36.5,
+          "price": 208.0
+        },
+        "6M": {
+          "direction": "up",
+          "percentage": 82.4,
+          "price": 278.0
+        },
+        "12M": {
+          "direction": "up",
+          "percentage": 165.7,
+          "price": 405.0
+        }
+      },
+      "indicators": {
+        "rsi": {
+          "monthly": 22,
+          "weekly": 18
+        },
+        "stochRsi": {
+          "monthly": 5,
+          "weekly": 3
+        },
+        "mfi": {
+          "monthly": 15,
+          "weekly": 12
+        },
+        "crsi": {
+          "monthly": 10,
+          "weekly": 8
+        },
+        "williamsR": {
+          "monthly": -95,
+          "weekly": -97
+        },
+        "rvi": {
+          "monthly": 0.15,
+          "weekly": 0.12
+        },
+        "adaptiveRsi": {
+          "monthly": 20,
+          "weekly": 16
+        }
+      },
+      "compositeMetrics": {
+        "cos": {
+          "monthly": 24.311507936507937,
+          "weekly": 21.15992063492063
+        },
+        "tsi": {
+          "monthly": 0,
+          "weekly": 0
+        }
+      }
+    },
+    {
+      "id": 5,
+      "date": "2017-12-17",
+      "name": "2017 Bull Run Peak",
+      "price": 19188.0,
+      "description": "Peak of the 2017 bull run after explosive growth from $1,000",
+      "outcomes": {
+        "1M": {
+          "direction": "down",
+          "percentage": -30.1,
+          "price": 13412.0
+        },
+        "6M": {
+          "direction": "down",
+          "percentage": -67.2,
+          "price": 6300.0
+        },
+        "12M": {
+          "direction": "down",
+          "percentage": -83.8,
+          "price": 3100.0
+        }
+      },
+      "indicators": {
+        "rsi": {
+          "monthly": 95,
+          "weekly": 97
+        },
+        "stochRsi": {
+          "monthly": 99,
+          "weekly": 100
+        },
+        "mfi": {
+          "monthly": 96,
+          "weekly": 98
+        },
+        "crsi": {
+          "monthly": 98,
+          "weekly": 99
+        },
+        "williamsR": {
+          "monthly": -2,
+          "weekly": -1
+        },
+        "rvi": {
+          "monthly": 0.95,
+          "weekly": 0.97
+        },
+        "adaptiveRsi": {
+          "monthly": 96,
+          "weekly": 98
+        }
+      },
+      "compositeMetrics": {
+        "cos": {
+          "monthly": 114.5027777777778,
+          "weekly": 115.74285714285713
+        },
+        "tsi": {
+          "monthly": 100,
+          "weekly": 100
+        }
+      }
+    },
+    {
+      "id": 6,
+      "date": "2018-12-15",
+      "name": "2018 Bottom",
+      "price": 3122.28,
+      "description": "Bottom of the bear market after the 2017 peak, down 84% from all-time high",
+      "outcomes": {
+        "1M": {
+          "direction": "up",
+          "percentage": 11.5,
+          "price": 3480.0
+        },
+        "6M": {
+          "direction": "up",
+          "percentage": 275.0,
+          "price": 11700.0
+        },
+        "12M": {
+          "direction": "up",
+          "percentage": 133.8,
+          "price": 7300.0
+        }
+      },
+      "indicators": {
+        "rsi": {
+          "monthly": 19,
+          "weekly": 15
+        },
+        "stochRsi": {
+          "monthly": 4,
+          "weekly": 2
+        },
+        "mfi": {
+          "monthly": 12,
+          "weekly": 9
+        },
+        "crsi": {
+          "monthly": 8,
+          "weekly": 6
+        },
+        "williamsR": {
+          "monthly": -96,
+          "weekly": -98
+        },
+        "rvi": {
+          "monthly": 0.12,
+          "weekly": 0.09
+        },
+        "adaptiveRsi": {
+          "monthly": 17,
+          "weekly": 13
+        }
+      },
+      "compositeMetrics": {
+        "cos": {
+          "monthly": 21.777777777777775,
+          "weekly": 18.626190476190477
+        },
+        "tsi": {
+          "monthly": 0,
+          "weekly": 0
+        }
+      }
+    },
+    {
+      "id": 7,
+      "date": "2020-03-13",
+      "name": "COVID Crash",
+      "price": 3850.0,
+      "description": "Major crash during the COVID-19 pandemic market panic",
+      "outcomes": {
+        "1M": {
+          "direction": "up",
+          "percentage": 58.4,
+          "price": 6100.0
+        },
+        "6M": {
+          "direction": "up",
+          "percentage": 194.8,
+          "price": 11350.0
+        },
+        "12M": {
+          "direction": "up",
+          "percentage": 1305.2,
+          "price": 54000.0
+        }
+      },
+      "indicators": {
+        "rsi": {
+          "monthly": 20,
+          "weekly": 16
+        },
+        "stochRsi": {
+          "monthly": 5,
+          "weekly": 3
+        },
+        "mfi": {
+          "monthly": 14,
+          "weekly": 10
+        },
+        "crsi": {
+          "monthly": 9,
+          "weekly": 7
+        },
+        "williamsR": {
+          "monthly": -95,
+          "weekly": -97
+        },
+        "rvi": {
+          "monthly": 0.14,
+          "weekly": 0.1
+        },
+        "adaptiveRsi": {
+          "monthly": 18,
+          "weekly": 14
+        }
+      },
+      "compositeMetrics": {
+        "cos": {
+          "monthly": 23.275,
+          "weekly": 19.794841269841267
+        },
+        "tsi": {
+          "monthly": 0,
+          "weekly": 0
+        }
+      }
+    },
+    {
+      "id": 8,
+      "date": "2021-04-14",
+      "name": "2021 First Peak",
+      "price": 64895.0,
+      "description": "First peak of 2021 after institutional adoption and Coinbase IPO",
+      "outcomes": {
+        "1M": {
+          "direction": "down",
+          "percentage": -35.2,
+          "price": 42000.0
+        },
+        "6M": {
+          "direction": "up",
+          "percentage": 8.9,
+          "price": 70700.0
+        },
+        "12M": {
+          "direction": "down",
+          "percentage": -39.9,
+          "price": 39000.0
+        }
+      },
+      "indicators": {
+        "rsi": {
+          "monthly": 88,
+          "weekly": 91
+        },
+        "stochRsi": {
+          "monthly": 94,
+          "weekly": 96
+        },
+        "mfi": {
+          "monthly": 89,
+          "weekly": 92
+        },
+        "crsi": {
+          "monthly": 93,
+          "weekly": 95
+        },
+        "williamsR": {
+          "monthly": -8,
+          "weekly": -6
+        },
+        "rvi": {
+          "monthly": 0.87,
+          "weekly": 0.9
+        },
+        "adaptiveRsi": {
+          "monthly": 89,
+          "weekly": 92
+        }
+      },
+      "compositeMetrics": {
+        "cos": {
+          "monthly": 110.47380952380954,
+          "weekly": 112.38253968253969
+        },
+        "tsi": {
+          "monthly": 100,
+          "weekly": 100
+        }
+      }
+    },
+    {
+      "id": 9,
+      "date": "2021-11-10",
+      "name": "2021 All-Time High",
+      "price": 69000.0,
+      "description": "All-time high of the 2021 bull market",
+      "outcomes": {
+        "1M": {
+          "direction": "down",
+          "percentage": -28.3,
+          "price": 49500.0
+        },
+        "6M": {
+          "direction": "down",
+          "percentage": -57.2,
+          "price": 29500.0
+        },
+        "12M": {
+          "direction": "down",
+          "percentage": -76.1,
+          "price": 16500.0
+        }
+      },
+      "indicators": {
+        "rsi": {
+          "monthly": 90,
+          "weekly": 93
+        },
+        "stochRsi": {
+          "monthly": 96,
+          "weekly": 98
+        },
+        "mfi": {
+          "monthly": 91,
+          "weekly": 94
+        },
+        "crsi": {
+          "monthly": 95,
+          "weekly": 97
+        },
+        "williamsR": {
+          "monthly": -7,
+          "weekly": -5
+        },
+        "rvi": {
+          "monthly": 0.89,
+          "weekly": 0.92
+        },
+        "adaptiveRsi": {
+          "monthly": 91,
+          "weekly": 94
+        }
+      },
+      "compositeMetrics": {
+        "cos": {
+          "monthly": 112.31111111111112,
+          "weekly": 114.21984126984128
+        },
+        "tsi": {
+          "monthly": 100,
+          "weekly": 100
+        }
+      }
+    },
+    {
+      "id": 10,
+      "date": "2022-11-21",
+      "name": "FTX Collapse Bottom",
+      "price": 15476.0,
+      "description": "Bottom after the FTX exchange collapse, down 77% from all-time high",
+      "outcomes": {
+        "1M": {
+          "direction": "up",
+          "percentage": 2.7,
+          "price": 15900.0
+        },
+        "6M": {
+          "direction": "up",
+          "percentage": 89.3,
+          "price": 29300.0
+        },
+        "12M": {
+          "direction": "up",
+          "percentage": 156.5,
+          "price": 39700.0
+        }
+      },
+      "indicators": {
+        "rsi": {
+          "monthly": 21,
+          "weekly": 17
+        },
+        "stochRsi": {
+          "monthly": 6,
+          "weekly": 4
+        },
+        "mfi": {
+          "monthly": 16,
+          "weekly": 13
+        },
+        "crsi": {
+          "monthly": 11,
+          "weekly": 9
+        },
+        "williamsR": {
+          "monthly": -94,
+          "weekly": -96
+        },
+        "rvi": {
+          "monthly": 0.16,
+          "weekly": 0.13
+        },
+        "adaptiveRsi": {
+          "monthly": 19,
+          "weekly": 15
+        }
+      },
+      "compositeMetrics": {
+        "cos": {
+          "monthly": 24.994444444444447,
+          "weekly": 21.84285714285714
+        },
+        "tsi": {
+          "monthly": 0,
+          "weekly": 0
+        }
+      }
+    },
+    {
+      "id": 11,
+      "date": "2024-03-14",
+      "name": "ETF Approval Peak",
+      "price": 73750.0,
+      "description": "New all-time high after Spot Bitcoin ETF approvals",
+      "outcomes": {
+        "1M": {
+          "direction": "down",
+          "percentage": -15.9,
+          "price": 62000.0
+        },
+        "6M": {
+          "direction": "up",
+          "percentage": 35.6,
+          "price": 100000.0
+        },
+        "12M": {
+          "direction": "up",
+          "percentage": 52.5,
+          "price": 112500.0
+        }
+      },
+      "indicators": {
+        "rsi": {
+          "monthly": 87,
+          "weekly": 90
+        },
+        "stochRsi": {
+          "monthly": 93,
+          "weekly": 95
+        },
+        "mfi": {
+          "monthly": 88,
+          "weekly": 91
+        },
+        "crsi": {
+          "monthly": 92,
+          "weekly": 94
+        },
+        "williamsR": {
+          "monthly": -9,
+          "weekly": -7
+        },
+        "rvi": {
+          "monthly": 0.86,
+          "weekly": 0.89
+        },
+        "adaptiveRsi": {
+          "monthly": 88,
+          "weekly": 91
+        }
+      },
+      "compositeMetrics": {
+        "cos": {
+          "monthly": 109.80515873015872,
+          "weekly": 111.71388888888889
+        },
+        "tsi": {
+          "monthly": 100,
+          "weekly": 100
+        }
+      }
+    },
+    {
+      "id": 12,
+      "date": "2024-11-22",
+      "name": "Trump Election Rally",
+      "price": 99500.0,
+      "description": "Peak after Donald Trump's re-election and promises of a Strategic Bitcoin Reserve",
+      "outcomes": {
+        "1M": {
+          "direction": "up",
+          "percentage": 7.0,
+          "price": 106500.0
+        },
+        "6M": {
+          "direction": "up",
+          "percentage": 12.5,
+          "price": 112000.0
+        },
+        "12M": {
+          "direction": "unknown",
+          "percentage": 0,
+          "price": 0
+        }
+      },
+      "indicators": {
+        "rsi": {
+          "monthly": 86,
+          "weekly": 89
+        },
+        "stochRsi": {
+          "monthly": 92,
+          "weekly": 94
+        },
+        "mfi": {
+          "monthly": 87,
+          "weekly": 90
+        },
+        "crsi": {
+          "monthly": 91,
+          "weekly": 93
+        },
+        "williamsR": {
+          "monthly": -10,
+          "weekly": -8
+        },
+        "rvi": {
+          "monthly": 0.85,
+          "weekly": 0.88
+        },
+        "adaptiveRsi": {
+          "monthly": 87,
+          "weekly": 90
+        }
+      },
+      "compositeMetrics": {
+        "cos": {
+          "monthly": 109.13650793650793,
+          "weekly": 111.0452380952381
+        },
+        "tsi": {
+          "monthly": 100,
+          "weekly": 100
+        }
+      }
+    }
+  ]
+}

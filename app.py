@@ -91,7 +91,7 @@ def init_db():
         rvi REAL,
         adaptive_rsi REAL,
         cos REAL,
-        tsi REAL
+        bsi REAL
     )
     ''')
 
@@ -367,8 +367,42 @@ def refresh_data():
     else:
         return jsonify({'status': 'error', 'message': 'Failed to refresh data'}), 500
 
+# Global variable to control the background thread
+should_exit = False
+
+# Modified background data refresh function with exit check
+def scheduled_data_refresh():
+    """Periodically refresh data from Kraken."""
+    global should_exit
+    while not should_exit:
+        logger.info("Scheduled data refresh starting")
+        fetch_and_store_data()
+        logger.info("Scheduled data refresh completed")
+
+        # Check for exit signal every second for 5 minutes
+        for _ in range(300):  # 5 minutes = 300 seconds
+            if should_exit:
+                break
+            time.sleep(1)
+
 # Initialize and start the app
 if __name__ == '__main__':
+    import signal
+    import sys
+
+    # Handle graceful shutdown
+    def signal_handler(sig, frame):
+        global should_exit
+        logger.info("Shutting down gracefully...")
+        should_exit = True
+        # Give the background thread time to exit
+        time.sleep(2)
+        sys.exit(0)
+
+    # Register signal handlers
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
+
     # Initialize the database
     init_db()
 
@@ -377,5 +411,8 @@ if __name__ == '__main__':
     refresh_thread.daemon = True
     refresh_thread.start()
 
-    # Start the Flask app
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    logger.info("Starting Flask app on port 5001")
+    logger.info("Press Ctrl+C to exit gracefully")
+
+    # Start the Flask app with threaded=False to avoid multiprocessing issues
+    app.run(debug=True, host='0.0.0.0', port=5001, threaded=False)

@@ -24,6 +24,9 @@
       const [error, setError] = useState(null);
       const [viewMode, setViewMode] = useState('both'); // 'monthly', 'weekly', or 'both'
       const [dataSource, setDataSource] = useState('loading'); // 'kraken', 'mock', or 'loading'
+      const [timeMachineData, setTimeMachineData] = useState(null); // Historical data for time machine
+      const [selectedTimePoint, setSelectedTimePoint] = useState(null); // Selected time point
+      const [timeMachineActive, setTimeMachineActive] = useState(false); // Whether time machine is active
 
       // Fetch data from our backend API or use mock data
       const fetchData = async () => {
@@ -89,6 +92,12 @@
 
       // Function to manually refresh data
       const refreshData = async () => {
+        // If time machine is active, deactivate it
+        if (timeMachineActive) {
+          deactivateTimeMachine();
+          return;
+        }
+
         setLoading(true);
         setError(null);
 
@@ -139,9 +148,100 @@
         }
       };
 
+      // Function to activate time machine with a specific time point
+      const activateTimeMachine = (timePoint) => {
+        if (!timePoint) return;
+
+        setSelectedTimePoint(timePoint);
+        setTimeMachineActive(true);
+
+        // Set indicators from the selected time point
+        setIndicators(timePoint.indicators);
+
+        // Calculate composite metrics
+        const metrics = calculateCompositeMetrics(timePoint.indicators);
+        setCompositeMetrics(metrics);
+
+        // Set last update time to the selected time point's date
+        setLastUpdate(new Date(timePoint.date));
+
+        // Set data source to time machine
+        setDataSource('timeMachine');
+
+        console.log(`Time machine activated: ${timePoint.name} (${timePoint.date})`);
+      };
+
+      // Function to deactivate time machine
+      const deactivateTimeMachine = async () => {
+        setSelectedTimePoint(null);
+        setTimeMachineActive(false);
+
+        // Fetch current data
+        await fetchData();
+
+        console.log('Time machine deactivated');
+      };
+
 
 
       // No longer need to calculate indicators as they come from the backend API
+
+      // Fetch time machine data
+      const fetchTimeMachineData = async () => {
+        try {
+          const response = await fetch('historical_data.json');
+          const data = await response.json();
+          setTimeMachineData(data.timePoints);
+          console.log('Time machine data loaded successfully');
+        } catch (err) {
+          console.error('Failed to load time machine data:', err);
+          // Create fallback data if fetch fails
+          setTimeMachineData([
+            {
+              id: 1,
+              date: "2021-04-14",
+              name: "2021 First Peak",
+              price: 64895.00,
+              description: "First peak of 2021 after institutional adoption",
+              outcomes: {
+                "1M": {"direction": "down", "percentage": -35.2, "price": 42000.00},
+                "6M": {"direction": "up", "percentage": 8.9, "price": 70700.00},
+                "12M": {"direction": "down", "percentage": -39.9, "price": 39000.00}
+              },
+              indicators: {
+                rsi: { monthly: 88, weekly: 91 },
+                stochRsi: { monthly: 94, weekly: 96 },
+                mfi: { monthly: 89, weekly: 92 },
+                crsi: { monthly: 93, weekly: 95 },
+                williamsR: { monthly: -8, weekly: -6 },
+                rvi: { monthly: 0.87, weekly: 0.90 },
+                adaptiveRsi: { monthly: 89, weekly: 92 }
+              }
+            },
+            {
+              id: 2,
+              date: "2021-11-10",
+              name: "2021 All-Time High",
+              price: 69000.00,
+              description: "All-time high of the 2021 bull market",
+              outcomes: {
+                "1M": {"direction": "down", "percentage": -28.3, "price": 49500.00},
+                "6M": {"direction": "down", "percentage": -57.2, "price": 29500.00},
+                "12M": {"direction": "down", "percentage": -76.1, "price": 16500.00}
+              },
+              indicators: {
+                rsi: { monthly: 90, weekly: 93 },
+                stochRsi: { monthly: 96, weekly: 98 },
+                mfi: { monthly: 91, weekly: 94 },
+                crsi: { monthly: 95, weekly: 97 },
+                williamsR: { monthly: -7, weekly: -5 },
+                rvi: { monthly: 0.89, weekly: 0.92 },
+                adaptiveRsi: { monthly: 91, weekly: 94 }
+              }
+            }
+          ]);
+        }
+      };
 
       // Calculate composite metrics
       const calculateCompositeMetrics = (indicators) => {
@@ -213,9 +313,43 @@
           weeklyCOS += weights[key] * weeklyNormalized[key];
         });
 
-        // Calculate TSI (Trend Strength Index)
-        const monthlyTSI = (monthlyOverbought / Object.keys(indicators).length) * 100;
-        const weeklyTSI = (weeklyOverbought / Object.keys(indicators).length) * 100;
+        // Calculate BSI (Bull Strength Index)
+        // Instead of just counting overbought indicators, we'll calculate a weighted average
+        // of how far each indicator is from its neutral value (50% of threshold)
+        let monthlyTSI = 0;
+        let weeklyTSI = 0;
+
+        Object.keys(indicators).forEach(key => {
+          const monthlyValue = indicators[key].monthly;
+          const weeklyValue = indicators[key].weekly;
+          const threshold = thresholds[key];
+
+          // Calculate distance from neutral (50% of threshold)
+          // For Williams %R (which is inverted), we need special handling
+          if (key === 'williamsR') {
+            // For Williams %R, neutral is around -50, overbought is > -20
+            const neutralValue = -50;
+            // Calculate how far the value is from neutral, normalized to 0-100
+            const monthlyDistance = Math.min(100, Math.max(0, (neutralValue - monthlyValue) / (neutralValue - threshold) * 100));
+            const weeklyDistance = Math.min(100, Math.max(0, (neutralValue - weeklyValue) / (neutralValue - threshold) * 100));
+
+            monthlyTSI += monthlyDistance * weights[key];
+            weeklyTSI += weeklyDistance * weights[key];
+          } else {
+            // For regular indicators, neutral is 50% of threshold
+            const neutralValue = threshold * 0.5;
+            // Calculate how far the value is from neutral, normalized to 0-100
+            const monthlyDistance = Math.min(100, Math.max(0, (monthlyValue - neutralValue) / (threshold - neutralValue) * 100));
+            const weeklyDistance = Math.min(100, Math.max(0, (weeklyValue - neutralValue) / (threshold - neutralValue) * 100));
+
+            monthlyTSI += monthlyDistance * weights[key];
+            weeklyTSI += weeklyDistance * weights[key];
+          }
+        });
+
+        // Scale to 0-100%
+        monthlyTSI = Math.min(100, Math.max(0, monthlyTSI));
+        weeklyTSI = Math.min(100, Math.max(0, weeklyTSI));
 
         return {
           cos: { monthly: monthlyCOS, weekly: weeklyCOS },
@@ -274,14 +408,23 @@
 
       // Load data on component mount and set up interval
       useEffect(() => {
+        // Initial data fetch
         fetchData();
 
+        // Fetch time machine data
+        fetchTimeMachineData();
+
         // Set up interval for refreshing data every 5 minutes
-        const interval = setInterval(fetchData, 5 * 60 * 1000);
+        const interval = setInterval(() => {
+          // Only refresh if time machine is not active
+          if (!timeMachineActive) {
+            fetchData();
+          }
+        }, 5 * 60 * 1000);
 
         // Clean up interval on component unmount
         return () => clearInterval(interval);
-      }, []);
+      }, [timeMachineActive]);
 
       return (
         <div className="container mx-auto px-4 py-8">
@@ -289,32 +432,244 @@
             <h1 className="text-3xl font-bold text-center text-gray-800">Bitcoin Indicator Dashboard</h1>
           </header>
 
-          <div className="mb-6 flex justify-center space-x-4">
-            <button
-              onClick={() => setViewMode('both')}
-              className={`px-4 py-2 rounded ${viewMode === 'both' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}
-            >
-              Both
-            </button>
-            <button
-              onClick={() => setViewMode('monthly')}
-              className={`px-4 py-2 rounded ${viewMode === 'monthly' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}
-            >
-              Monthly
-            </button>
-            <button
-              onClick={() => setViewMode('weekly')}
-              className={`px-4 py-2 rounded ${viewMode === 'weekly' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}
-            >
-              Weekly
-            </button>
-            <button
-              onClick={refreshData}
-              className="px-4 py-2 bg-green-600 text-white rounded"
-              disabled={loading}
-            >
-              {loading ? 'Refreshing...' : 'Refresh Data'}
-            </button>
+          <div className="mb-6 flex flex-col space-y-4">
+            <div className="flex justify-center space-x-4">
+              <button
+                onClick={() => setViewMode('both')}
+                className={`px-4 py-2 rounded ${viewMode === 'both' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}
+              >
+                Both
+              </button>
+              <button
+                onClick={() => setViewMode('monthly')}
+                className={`px-4 py-2 rounded ${viewMode === 'monthly' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}
+              >
+                Monthly
+              </button>
+              <button
+                onClick={() => setViewMode('weekly')}
+                className={`px-4 py-2 rounded ${viewMode === 'weekly' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}
+              >
+                Weekly
+              </button>
+              <button
+                onClick={refreshData}
+                className={`px-4 py-2 ${timeMachineActive ? 'bg-amber-600' : 'bg-green-600'} text-white rounded`}
+                disabled={loading}
+              >
+                {loading ? 'Refreshing...' : timeMachineActive ? 'Exit Time Machine' : 'Refresh Data'}
+              </button>
+            </div>
+
+            {/* Time Machine UI */}
+            {timeMachineData && (
+              <div className="bg-white p-4 rounded-lg shadow">
+                <div className="flex flex-col space-y-2 mb-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-medium text-gray-900">
+                      <span role="img" aria-label="time machine">⏰</span> Bitcoin Time Machine
+                    </h3>
+                    {timeMachineActive && selectedTimePoint && (
+                      <span className="bg-purple-100 text-purple-800 text-xs font-medium px-2.5 py-0.5 rounded">
+                        Viewing: {selectedTimePoint.name} ({new Date(selectedTimePoint.date).toLocaleDateString()})
+                      </span>
+                    )}
+                  </div>
+
+                  {!timeMachineActive && compositeMetrics ? (
+                    <div className="bg-blue-50 p-2 rounded text-sm flex flex-wrap items-center justify-between">
+                      <div className="font-medium text-blue-800">Current Metrics:</div>
+                      <div className="flex space-x-4">
+                        <div>
+                          <span className="text-gray-600">
+                            COS Monthly/Weekly:
+                            <span className="ml-1 text-gray-400 cursor-help" title="Composite Overbought Score - Combines all indicators with weighted importance. Values above 75 suggest extreme overbought conditions.">ⓘ</span>
+                          </span>
+                          <span className={compositeMetrics.cos.monthly > 75 || compositeMetrics.cos.weekly > 75 ? 'ml-1 font-medium text-red-600' : 'ml-1 font-medium text-blue-600'}>
+                            {compositeMetrics.cos.monthly.toFixed(1)} / {compositeMetrics.cos.weekly.toFixed(1)}
+                          </span>
+                          {compositeMetrics.cos.monthly > 90 || compositeMetrics.cos.weekly > 90 ?
+                            <span className="ml-1 text-red-500">⚠️</span> :
+                            null}
+                        </div>
+                        <div>
+                          <span className="text-gray-600">
+                            BSI Monthly/Weekly:
+                            <span className="ml-1 text-gray-400 cursor-help" title="Bull Strength Index - Measures the strength of the bullish trend. Values above 75% indicate a strong bullish trend, 50-75% a moderate trend, and below 50% a weak or bearish trend.">ⓘ</span>
+                          </span>
+                          <span className={compositeMetrics.tsi.monthly > 50 || compositeMetrics.tsi.weekly > 50 ? 'ml-1 font-medium text-red-600' : 'ml-1 font-medium text-blue-600'}>
+                            {compositeMetrics.tsi.monthly.toFixed(0)}% / {compositeMetrics.tsi.weekly.toFixed(0)}%
+                          </span>
+                          {compositeMetrics.tsi.monthly > 75 || compositeMetrics.tsi.weekly > 75 ?
+                            <span className="ml-1 text-red-500">⚠️</span> :
+                            null}
+                        </div>
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        Compare current metrics with historical events below
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                        <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Event</th>
+                        <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
+                        <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          COS (M/W)
+                          <span className="ml-1 text-gray-400 cursor-help" title="Composite Overbought Score - Combines all indicators with weighted importance. Values above 75 suggest extreme overbought conditions.">ⓘ</span>
+                        </th>
+                        <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          BSI (M/W)
+                          <span className="ml-1 text-gray-400 cursor-help" title="Bull Strength Index - Measures the strength of the bullish trend. Values above 75% indicate a strong bullish trend, 50-75% a moderate trend, and below 50% a weak or bearish trend.">ⓘ</span>
+                        </th>
+                        <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">1M Later</th>
+                        <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">6M Later</th>
+                        <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {timeMachineData.map(timePoint => (
+                        <tr key={timePoint.id} className={selectedTimePoint && selectedTimePoint.id === timePoint.id ? 'bg-purple-50' : ''}>
+                          <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">{new Date(timePoint.date).toLocaleDateString()}</td>
+                          <td className="px-3 py-2 text-sm font-medium text-gray-900">
+                            {timePoint.name}
+                            <div className="text-xs text-gray-500 break-normal">{timePoint.description}</div>
+                          </td>
+                          <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">${timePoint.price.toLocaleString()}</td>
+                          <td className="px-3 py-2 whitespace-nowrap text-sm">
+                            <span className={calculateCompositeMetrics(timePoint.indicators).cos.monthly > 75 ? 'text-red-600 font-medium' : 'text-gray-900'}>
+                              {calculateCompositeMetrics(timePoint.indicators).cos.monthly.toFixed(1)}
+                            </span>
+                            {' / '}
+                            <span className={calculateCompositeMetrics(timePoint.indicators).cos.weekly > 75 ? 'text-red-600 font-medium' : 'text-gray-900'}>
+                              {calculateCompositeMetrics(timePoint.indicators).cos.weekly.toFixed(1)}
+                            </span>
+                            {calculateCompositeMetrics(timePoint.indicators).cos.monthly > 90 || calculateCompositeMetrics(timePoint.indicators).cos.weekly > 90 ?
+                              <span className="ml-1 text-red-500">⚠️</span> :
+                              null}
+                          </td>
+                          <td className="px-3 py-2 whitespace-nowrap text-sm">
+                            <span className={calculateCompositeMetrics(timePoint.indicators).tsi.monthly > 50 ? 'text-red-600 font-medium' : 'text-gray-900'}>
+                              {calculateCompositeMetrics(timePoint.indicators).tsi.monthly.toFixed(0)}%
+                            </span>
+                            {' / '}
+                            <span className={calculateCompositeMetrics(timePoint.indicators).tsi.weekly > 50 ? 'text-red-600 font-medium' : 'text-gray-900'}>
+                              {calculateCompositeMetrics(timePoint.indicators).tsi.weekly.toFixed(0)}%
+                            </span>
+                            {calculateCompositeMetrics(timePoint.indicators).tsi.monthly > 75 || calculateCompositeMetrics(timePoint.indicators).tsi.weekly > 75 ?
+                              <span className="ml-1 text-red-500">⚠️</span> :
+                              null}
+                          </td>
+                          <td className="px-3 py-2 whitespace-nowrap text-sm">
+                            <span className={timePoint.outcomes['1M'].direction === 'up' ? 'text-green-600' : 'text-red-600'}>
+                              {timePoint.outcomes['1M'].direction === 'up' ? '↑' : '↓'} {timePoint.outcomes['1M'].percentage}%
+                            </span>
+                          </td>
+                          <td className="px-3 py-2 whitespace-nowrap text-sm">
+                            <span className={timePoint.outcomes['6M'].direction === 'up' ? 'text-green-600' : 'text-red-600'}>
+                              {timePoint.outcomes['6M'].direction === 'up' ? '↑' : '↓'} {timePoint.outcomes['6M'].percentage}%
+                            </span>
+                          </td>
+                          <td className="px-3 py-2 whitespace-nowrap text-sm">
+                            <button
+                              onClick={() => activateTimeMachine(timePoint)}
+                              className="text-purple-600 hover:text-purple-900"
+                            >
+                              {selectedTimePoint && selectedTimePoint.id === timePoint.id ? 'Viewing' : 'View Indicators'}
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {selectedTimePoint && (
+                  <div className="mt-4 p-3 bg-gray-50 rounded text-sm">
+                    <p className="font-medium mb-2">{selectedTimePoint.description}</p>
+                    <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-2 text-xs">
+                      <div className="p-2 bg-white rounded shadow-sm">
+                        <div className="font-medium mb-1">Price at Event</div>
+                        <div className="text-lg">${selectedTimePoint.price.toLocaleString()}</div>
+                      </div>
+
+                      <div className="p-2 bg-blue-50 rounded shadow-sm">
+                        <div className="font-medium mb-1">COS Monthly/Weekly</div>
+                        <div className="text-lg text-blue-600">
+                          {calculateCompositeMetrics(selectedTimePoint.indicators).cos.monthly.toFixed(1)} / {calculateCompositeMetrics(selectedTimePoint.indicators).cos.weekly.toFixed(1)}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {calculateCompositeMetrics(selectedTimePoint.indicators).cos.monthly > 75 || calculateCompositeMetrics(selectedTimePoint.indicators).cos.weekly > 75 ?
+                            'Extreme overbought' : 'Normal range'}
+                        </div>
+                      </div>
+
+                      <div className="p-2 bg-blue-50 rounded shadow-sm">
+                        <div className="font-medium mb-1">BSI Monthly/Weekly</div>
+                        <div className="text-lg text-blue-600">
+                          {calculateCompositeMetrics(selectedTimePoint.indicators).tsi.monthly.toFixed(0)}% / {calculateCompositeMetrics(selectedTimePoint.indicators).tsi.weekly.toFixed(0)}%
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {calculateCompositeMetrics(selectedTimePoint.indicators).tsi.monthly > 75 || calculateCompositeMetrics(selectedTimePoint.indicators).tsi.weekly > 75 ?
+                            'Strong bullish trend' :
+                            calculateCompositeMetrics(selectedTimePoint.indicators).tsi.monthly > 50 || calculateCompositeMetrics(selectedTimePoint.indicators).tsi.weekly > 50 ?
+                            'Moderate bullish trend' : 'Weak or bearish trend'}
+                        </div>
+                      </div>
+
+                      <div className={`p-2 rounded shadow-sm ${selectedTimePoint.outcomes['1M'].direction === 'up' ? 'bg-green-50' : 'bg-red-50'}`}>
+                        <div className="font-medium mb-1">1 Month Later</div>
+                        <div className="text-lg">
+                          <span className={selectedTimePoint.outcomes['1M'].direction === 'up' ? 'text-green-600' : 'text-red-600'}>
+                            {selectedTimePoint.outcomes['1M'].direction === 'up' ? '↑' : '↓'} {selectedTimePoint.outcomes['1M'].percentage}%
+                          </span>
+                        </div>
+                        <div>${selectedTimePoint.outcomes['1M'].price.toLocaleString()}</div>
+                      </div>
+
+                      <div className={`p-2 rounded shadow-sm ${selectedTimePoint.outcomes['6M'].direction === 'up' ? 'bg-green-50' : 'bg-red-50'}`}>
+                        <div className="font-medium mb-1">6 Months Later</div>
+                        <div className="text-lg">
+                          <span className={selectedTimePoint.outcomes['6M'].direction === 'up' ? 'text-green-600' : 'text-red-600'}>
+                            {selectedTimePoint.outcomes['6M'].direction === 'up' ? '↑' : '↓'} {selectedTimePoint.outcomes['6M'].percentage}%
+                          </span>
+                        </div>
+                        <div>${selectedTimePoint.outcomes['6M'].price.toLocaleString()}</div>
+                      </div>
+
+                      <div className={`p-2 rounded shadow-sm ${
+                        selectedTimePoint.outcomes['12M'].direction === 'up' ? 'bg-green-50' :
+                        selectedTimePoint.outcomes['12M'].direction === 'down' ? 'bg-red-50' :
+                        'bg-gray-50'
+                      }`}>
+                        <div className="font-medium mb-1">12 Months Later</div>
+                        <div className="text-lg">
+                          <span className={
+                            selectedTimePoint.outcomes['12M'].direction === 'up' ? 'text-green-600' :
+                            selectedTimePoint.outcomes['12M'].direction === 'down' ? 'text-red-600' :
+                            'text-gray-600'
+                          }>
+                            {selectedTimePoint.outcomes['12M'].direction === 'up' ? '↑' :
+                             selectedTimePoint.outcomes['12M'].direction === 'down' ? '↓' : '?'}
+                            {selectedTimePoint.outcomes['12M'].percentage}%
+                          </span>
+                        </div>
+                        <div>
+                          {selectedTimePoint.outcomes['12M'].direction !== 'unknown' ?
+                            '$' + selectedTimePoint.outcomes['12M'].price.toLocaleString() :
+                            'Unknown'}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {error && (
@@ -408,7 +763,10 @@
           {compositeMetrics && (
             <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="bg-white p-6 rounded-lg shadow">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Composite Overbought Score (COS)</h3>
+                <h3 className="text-lg font-medium text-gray-900 mb-4">
+                  Composite Overbought Score (COS)
+                  <span className="ml-2 text-gray-400 cursor-help" title="Composite Overbought Score - Combines all indicators with weighted importance. Values above 75 suggest extreme overbought conditions.">ⓘ</span>
+                </h3>
                 <div className="relative pt-1">
                   <div className="flex mb-2 items-center justify-between">
                     <div>
@@ -447,7 +805,10 @@
               </div>
 
               <div className="bg-white p-6 rounded-lg shadow">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Trend Strength Index (TSI)</h3>
+                <h3 className="text-lg font-medium text-gray-900 mb-4">
+                  Bull Strength Index (BSI)
+                  <span className="ml-2 text-gray-400 cursor-help" title="Bull Strength Index - Measures the strength of the bullish trend. Values above 75% indicate a strong bullish trend, 50-75% a moderate trend, and below 50% a weak or bearish trend.">ⓘ</span>
+                </h3>
                 <div className="relative pt-1">
                   <div className="flex mb-2 items-center justify-between">
                     <div>
@@ -480,7 +841,8 @@
                     ></div>
                   </div>
                   <p className="text-sm text-gray-600">
-                    TSI shows the percentage of indicators in overbought territory. Values above 50% suggest caution.
+                    BSI measures the strength of the bullish trend. Values above 75% indicate a strong bullish trend,
+                    50-75% a moderate trend, and below 50% a weak or bearish trend.
                   </p>
                 </div>
               </div>
@@ -489,7 +851,12 @@
 
           <footer className="mt-12 text-center text-sm">
             <div className="mb-2">
-              {dataSource === 'kraken' ? (
+              {dataSource === 'timeMachine' ? (
+                <p className="text-purple-600">
+                  <span className="bg-purple-100 text-purple-800 text-xs font-medium px-2.5 py-0.5 rounded">Time Machine Active</span>
+                  <span className="ml-2">Viewing historical data from {lastUpdate ? lastUpdate.toLocaleDateString() : 'unknown date'}</span>
+                </p>
+              ) : dataSource === 'kraken' ? (
                 <p className="text-gray-600">
                   Data refreshes automatically every 5 minutes. Last refresh: {lastUpdate ? lastUpdate.toLocaleString() : 'Loading...'}
                   <span className="ml-2 bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded">Live Kraken Data</span>
@@ -511,6 +878,17 @@
               <a href="https://www.investopedia.com/terms/r/rsi.asp" className="text-blue-600 hover:underline" target="_blank" rel="noopener noreferrer">
                 Learn about RSI
               </a>
+              {timeMachineActive && selectedTimePoint &&
+                ' | '
+              }
+              {timeMachineActive && selectedTimePoint &&
+                <button
+                  onClick={deactivateTimeMachine}
+                  className="text-purple-600 hover:underline"
+                >
+                  Exit Time Machine
+                </button>
+              }
             </p>
           </footer>
         </div>

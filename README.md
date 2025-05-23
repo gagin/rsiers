@@ -21,10 +21,14 @@ A web application that displays various technical indicators for Bitcoin to help
 - Provides composite metrics:
   - Composite Overbought Score (COS)
   - Trend Strength Index (TSI)
+- Time Machine feature to view indicators at historical market peaks and crashes
+  - Shows what happened 1, 6, and 12 months after each point
+  - Includes 12 significant Bitcoin market events from 2011 to 2024
+  - Displays price changes and percentage movements
 - Stores historical data in SQLite database
 - Automatically refreshes data every 5 minutes
 - Fallback to mock data when backend is unavailable
-- Clear visual indicator showing data source (Live Kraken Data or Mock Data)
+- Clear visual indicator showing data source (Live Kraken Data, Mock Data, or Time Machine)
 
 ## Architecture
 

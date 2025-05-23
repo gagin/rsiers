@@ -44,9 +44,9 @@ The app will:
     - Retrieve historical OHLC and volume data for at least 2 years (for monthly calculations) and 6 months (for weekly calculations).
     - Fetch real-time data every 5 minutes for live updates.
     - Handle API rate limits (15–20 calls per minute, per Kraken documentation).[
-        
+
         ![](https://imgs.search.brave.com/3_pgcqTM7k_Iz2HLgq3yvKC-jlPi5hkT0K-NaX3YfxU/rs:fit:64:0:0:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvOTEyYjc5NjZj/NDgxYjgzNWNiMmU3/OWZiM2UyYWQ0Yjgx/MDE1ZTQyNDBmOTc2/M2M4ODQ5OTA1MzJi/YzYyZDNmNi9hbGdv/dHJhZGluZzEwMS5j/b20v)
-        
+
         ](https://algotrading101.com/learn/kraken-api-guide/)
 - **Data Parameters**:
     - Pair: XXBTZUSD (Bitcoin/USD).
@@ -73,9 +73,9 @@ The app will calculate the following indicators using Python (via Pyodide) on mo
     - Formula: CRSI = (RSI(3) + RSI(Streak, 2) + ROC Rank(100)) / 3.
     - Overbought: >90.
     - Time Frame: Weekly (preferred for short-term sensitivity), Monthly.[
-        
+
         ![](https://imgs.search.brave.com/sfg3icl6l5D4D10JNJFGW7Ccha70fYOqy9aL229OzYk/rs:fit:64:0:0:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvZWFkY2JjMzZi/OWE1MmUwZDMzMDQ2/ODVhNWMzOWQ1NGEz/ZTgzMDEwYTU3ZDM4/NGZkNjc5NTZiOWQ3/ZTdhMmRhMC9jaGFy/dHNjaG9vbC5zdG9j/a2NoYXJ0cy5jb20v)
-        
+
         ](https://chartschool.stockcharts.com/table-of-contents/technical-indicators-and-overlays/technical-indicators/connorsrsi)
 5. **Williams %R**:
     - Formula: %R = [(Highest High - Close) / (Highest High - Lowest Low)] × -100, over 14 periods.
@@ -92,15 +92,15 @@ The app will calculate the following indicators using Python (via Pyodide) on mo
 
 - **Implementation**:
     - Use the stock-indicators Python library (via Pyodide) for RSI, StochRSI, MFI, CRSI, Williams %R, and RVI calculations.[
-        
+
         ![](https://imgs.search.brave.com/GioK6AnrDwK5JP1qX3o3rq4wiAMA6j2Jr-L7DxEcP_c/rs:fit:64:0:0:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvZjgwMTY1NjI3/NTA4OGQwZmY0ZjQ5/MzJlOWZjMGVjY2Q4/Yzg4NTdlMTg1YTA2/MTliMWFjMmUzZWU2/OTE0ODY2Yi9weXBp/Lm9yZy8)
-        
+
         ](https://pypi.org/project/stock-indicators/)
     - Implement Adaptive RSI using a custom algorithm adjusting the lookback period based on ATR (Average True Range) volatility.
     - Ensure calculations match Kraken’s chart values by using closing prices and standard settings (e.g., 14-period RSI).[
-        
+
         ![](https://imgs.search.brave.com/IY5wVtB6VKwwSg7YDkUyFtQtc2_JxBCDWSDVqrU85qI/rs:fit:64:0:0:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvNWU3Zjg0ZjA1/YjQ3ZTlkNjQ1ODA1/MjAwODhiNjhjYWU0/OTc4MjM4ZDJlMTBi/ODExYmNiNTkzMjdh/YjM3MGExMS9zdGFj/a292ZXJmbG93LmNv/bS8)
-        
+
         ](https://stackoverflow.com/questions/50203625/calculate-rsi-based-on-kraken-ohlc)
 
 ### 3.3 Data Display
@@ -117,8 +117,8 @@ The app will calculate the following indicators using Python (via Pyodide) on mo
         - StochRSI (30%), CRSI (20%), MFI (20%), RSI (15%), Williams %R (10%), RVI (3%), Adaptive RSI (2%).
         - Formula: COS = Σ(Weight × Normalized Value), where Normalized Value = (Indicator Value / Overbought Threshold) × 100.
         - Threshold: COS >75 indicates a strong sell signal.
-    - **Trend Strength Index (TSI)**: Percentage of indicators in overbought territory (e.g., 4/7 indicators overbought = 57%).
-    - Display COS and TSI below the table with a gauge or progress bar (e.g., 0–100 scale, red for >75).
+    - **Bull Strength Index (BSI)**: Measures the strength of the bullish trend based on how far each indicator is from its neutral value, weighted by importance.
+    - Display COS and BSI below the table with a gauge or progress bar (e.g., 0–100 scale, red for >75).
 - **Real-Time Updates**:
     - Update table and composite metrics every 5 minutes with new Kraken API data.
     - Show last update timestamp.
@@ -131,7 +131,7 @@ The app will calculate the following indicators using Python (via Pyodide) on mo
     - Use className instead of class for JSX attributes.
 - **Layout**:
     - Header: App title (“Bitcoin Indicator Dashboard”) and last update timestamp.
-    - Main Section: Table with indicator values and composite metrics (COS, TSI) below.
+    - Main Section: Table with indicator values and composite metrics (COS, BSI) below.
     - Footer: Links to Kraken API docs and indicator explanations.
 - **Interactivity**:
     - Allow users to toggle between monthly and weekly views.
@@ -155,15 +155,15 @@ The app will calculate the following indicators using Python (via Pyodide) on mo
 - **Libraries**:
     - axios for Kraken API requests.
     - stock-indicators for technical indicators.[
-        
+
         ![](https://imgs.search.brave.com/GioK6AnrDwK5JP1qX3o3rq4wiAMA6j2Jr-L7DxEcP_c/rs:fit:64:0:0:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvZjgwMTY1NjI3/NTA4OGQwZmY0ZjQ5/MzJlOWZjMGVjY2Q4/Yzg4NTdlMTg1YTA2/MTliMWFjMmUzZWU2/OTE0ODY2Yi9weXBp/Lm9yZy8)
-        
+
         ](https://pypi.org/project/stock-indicators/)
     - chart.js for composite metric visualizations (optional gauge).
 - **API**: Kraken REST API (/public/OHLC).[
-    
+
     ![](https://imgs.search.brave.com/3_pgcqTM7k_Iz2HLgq3yvKC-jlPi5hkT0K-NaX3YfxU/rs:fit:64:0:0:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvOTEyYjc5NjZj/NDgxYjgzNWNiMmU3/OWZiM2UyYWQ0Yjgx/MDE1ZTQyNDBmOTc2/M2M4ODQ5OTA1MzJi/YzYyZDNmNi9hbGdv/dHJhZGluZzEwMS5j/b20v)
-    
+
     ](https://algotrading101.com/learn/kraken-api-guide/)
 
 ### 4.2 Sample Code
@@ -180,6 +180,6 @@ Show inline
 
 - **As a trader**, I want to see monthly and weekly values for RSI, StochRSI, MFI, CRSI, Williams %R, RVI, and Adaptive RSI in a table, so I can assess Bitcoin’s momentum and plan a sell in 2025.
 - **As a trader**, I want color-coded overbought statuses, so I can quickly identify potential sell signals.
-- **As a trader**, I want composite metrics (COS, TSI), so I can get a summarized view of market momentum.
+- **As a trader**, I want composite metrics (COS, BSI), so I can get a summarized view of market momentum.
 - **As a trader**, I want real-time updates every 5 minutes, so I can stay informed of current market conditions.
 - **As a trader**, I want to toggle between monthly and weekly views, so I can align with my 1-year horizon and refine timing.
