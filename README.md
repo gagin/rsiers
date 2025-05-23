@@ -1,15 +1,22 @@
-# Bitcoin Indicator Dashboard
+# Bitcoin Indicator Dashboard (v0.2.0)
 
-A web application that displays various technical indicators for Bitcoin to help identify potential sell signals. The application fetches data from the Kraken API, calculates technical indicators, and displays them in a user-friendly dashboard.
+A web application that displays various technical indicators for Bitcoin to help identify potential sell signals. The application calculates technical indicators and displays them in a user-friendly dashboard.
 
 ![Bitcoin Indicator Dashboard Screenshot](btc-rsis.png)
 
 *Screenshot of the Bitcoin Indicator Dashboard showing technical indicators and composite metrics*
 
+## Project Origin
+
+This project is vibecoded:
+- Original PRD created by Grok 3
+- Implementation by Augment using Sonnet 3.7
+
+The project demonstrates how AI can be used to create functional applications with minimal human intervention.
+
 ## Features
 
-- Fetches real-time Bitcoin price data from the Kraken API
-- Calculates and displays key technical indicators:
+- Displays key technical indicators for Bitcoin:
   - Relative Strength Index (RSI)
   - Stochastic RSI
   - Money Flow Index (MFI)
@@ -20,11 +27,15 @@ A web application that displays various technical indicators for Bitcoin to help
 - Shows both monthly and weekly values for all indicators
 - Provides composite metrics:
   - Composite Overbought Score (COS)
-  - Trend Strength Index (TSI)
-- Time Machine feature to view indicators at historical market peaks and crashes
+  - Bull Strength Index (BSI) - originally TSI, Trend Strength Index
+- Enhanced Time Machine feature:
+  - View indicators at any historical date using calendar control
   - Shows what happened 1, 6, and 12 months after each point
   - Includes 12 significant Bitcoin market events from 2011 to 2024
   - Displays price changes and percentage movements
+  - Interpolates prices for custom dates
+- Foldable indicator table with detailed descriptions
+- Technical analysis explanation with sarcastic tone
 - Stores historical data in SQLite database
 - Automatically refreshes data every 5 minutes
 - Fallback to mock data when backend is unavailable
@@ -35,26 +46,62 @@ A web application that displays various technical indicators for Bitcoin to help
 The application consists of two main components:
 
 1. **Backend (Python/Flask)**
-   - Fetches data from Kraken API
-   - Stores data in SQLite database
-   - Calculates technical indicators
+   - Serves pre-calculated indicator data from SQLite database
    - Provides API endpoints for the frontend
+   - Note: While the application includes code for fetching data from Kraken API, the current implementation primarily relies on pre-calculated historical data stored in `historical_data.json`
 
 2. **Frontend (HTML/JavaScript/React)**
-   - Displays the dashboard UI
+   - Displays the dashboard UI with a clean, modern interface
    - Fetches data from the backend API
    - Visualizes indicators and metrics
+   - Implements the Time Machine feature with calendar control
+   - Calculates price interpolations for custom dates
+   - Provides detailed descriptions for each indicator
 
 ## Setup and Installation
 
 ### Prerequisites
 
-- Python 3.7+ (Python 3.12 recommended)
-- Conda environment (recommended) or system Python
+- Docker and Docker Compose (recommended for the most reliable setup)
+- Python 3.7+ (Python 3.12 recommended) if not using Docker
 - Make (optional, for using the Makefile)
 - Node.js (optional, for development)
 
-### Option 1: Using Make (Recommended)
+### Option 1: Using Docker (Recommended)
+
+This option uses Docker to run both the backend and frontend in containers. Docker is the recommended approach because:
+
+- It eliminates dependency and environment issues across different operating systems
+- Ensures consistent behavior regardless of your local Python setup
+- Avoids port conflicts with system services (like AirPlay on macOS)
+- No need to install Python packages or worry about version compatibility
+
+```bash
+# Make the script executable
+chmod +x docker-start.sh
+
+# Start the application
+./docker-start.sh
+```
+
+The script will:
+1. Check if Docker and Docker Compose are installed
+2. Build and start the containers
+3. Provide URLs to access the application
+
+Then access the application at http://localhost:8000
+
+To view logs:
+```bash
+docker-compose logs -f
+```
+
+To stop the application:
+```bash
+docker-compose down
+```
+
+### Option 2: Using Make
 
 The project includes a Makefile that simplifies installation and running the application:
 
@@ -104,11 +151,15 @@ The script will:
 
 Then access the application at http://localhost:8000. If the backend is working correctly, you'll see "Live Kraken Data" in the footer.
 
-### Option 3: Manual Setup
+
+
+### Option 4: Manual Setup (Not Recommended)
+
+**Note:** The manual setup instructions are provided for completeness but are not thoroughly tested across all environments. Docker is strongly recommended for the most reliable experience.
 
 #### 1. Install the required Python packages:
 
-If you're using Conda (recommended):
+If you're using Conda:
 ```bash
 conda install flask requests numpy pandas
 pip install flask-cors
@@ -117,6 +168,11 @@ pip install flask-cors
 If you're using system Python:
 ```bash
 pip install flask flask-cors requests numpy pandas
+```
+
+**Note for Python 3.12 users:** Make sure to install numpy version 1.26.0 or higher:
+```bash
+pip install "numpy>=1.26.0"
 ```
 
 #### 2. Start the backend server:
@@ -150,9 +206,9 @@ The application uses SQLite for data storage with the following tables:
 
 ### "No module named 'numpy'" or Other Package Errors
 
-If you encounter dependency errors, try the following solutions:
+If you encounter dependency errors and are not using Docker, try the following solutions:
 
-1. **For Conda environments (recommended)**:
+1. **For Conda environments**:
    ```bash
    conda install numpy pandas flask requests
    pip install flask-cors
@@ -161,7 +217,7 @@ If you encounter dependency errors, try the following solutions:
 2. **For system Python**:
    ```bash
    pip install wheel
-   pip install numpy
+   pip install "numpy>=1.26.0"  # For Python 3.12 compatibility
    pip install pandas
    pip install flask
    pip install flask-cors
@@ -169,22 +225,25 @@ If you encounter dependency errors, try the following solutions:
    ```
 
 3. **Python Version Compatibility**:
-   - The application has been updated to work with Python 3.12
-   - If you're using an older Python version (3.7-3.11), the application should still work
-   - If you encounter issues with specific package versions, try installing without version constraints
+   - The application has been updated to work with Python 3.12, which requires numpy 1.26.0+
+   - If you're using an older Python version (3.7-3.11), you may use older numpy versions
+   - To avoid dependency issues altogether, use the Docker setup
 
 ### "Address already in use" Error on Port 5000 (macOS)
 
 On macOS, port 5000 is often used by the AirPlay Receiver service, which can cause conflicts when trying to run the Flask server.
 
-1. **Solution 1**: Use the updated scripts
+1. **Solution 1**: Use Docker (recommended)
+   - The Docker setup automatically handles port mapping and avoids conflicts
+
+2. **Solution 2**: Use the updated scripts
    - The `fix_and_run.sh` script and `simple_server.py` have been updated to use port 5001 instead of 5000
 
-2. **Solution 2**: Disable AirPlay Receiver
+3. **Solution 3**: Disable AirPlay Receiver
    - Go to System Preferences → General → AirDrop & Handoff
    - Disable the 'AirPlay Receiver' service
 
-3. **Solution 3**: Manually specify a different port
+4. **Solution 4**: Manually specify a different port
    - When running the Flask server manually, specify a different port:
    ```bash
    python app.py --port 5001
@@ -199,7 +258,9 @@ If you see "Mock Data" in the footer of the application, it means:
 To fix this:
 1. Make sure the backend server is running on port 5001
 2. Check for any network or firewall issues
-3. If you want to use real data, run the full application with `./fix_and_run.sh`
+3. Run the full application with `./fix_and_run.sh`
+
+Note: The application is designed to work with pre-calculated historical data stored in `historical_data.json`. While it includes code for fetching data from the Kraken API, the current implementation primarily uses this historical data and mock data for demonstration purposes. The "Live Kraken Data" indicator in the footer simply means the backend is successfully serving data, not necessarily that it's fetching real-time data from Kraken.
 
 ### System-specific issues
 

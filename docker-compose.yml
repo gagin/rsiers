@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  backend:
+    build: .
+    container_name: btc-dashboard-backend
+    ports:
+      - "5001:5001"  # Keep original port mapping
+    volumes:
+      - ./:/app
+      - bitcoin_data:/app/data
+    environment:
+      - FLASK_ENV=production
+    restart: unless-stopped
+    command: python simple_server.py
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5001/api/indicators"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  frontend:
+    image: python:3.12-slim
+    container_name: btc-dashboard-frontend
+    ports:
+      - "8000:8000"  # Keep original port mapping
+    volumes:
+      - ./:/app
+    working_dir: /app
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+    command: python -m http.server 8000
+
+volumes:
+  bitcoin_data:

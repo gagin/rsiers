@@ -51,24 +51,7 @@ def refresh_data():
     return jsonify({'status': 'success', 'message': 'Data refreshed successfully'})
 
 if __name__ == '__main__':
-    import signal
-    import sys
-
     # Use port 5001 instead of 5000 to avoid conflicts with AirPlay on macOS
     port = 5001
-
-    # Handle graceful shutdown
-    def signal_handler(sig, frame):
-        print("\nShutting down gracefully...")
-        # Clean up any resources here
-        sys.exit(0)
-
-    # Register signal handlers
-    signal.signal(signal.SIGINT, signal_handler)
-    signal.signal(signal.SIGTERM, signal_handler)
-
     print(f"Starting Flask server on http://localhost:{port}")
-    print("Press Ctrl+C to exit gracefully")
-
-    # Use threaded=False to avoid some multiprocessing issues
-    app.run(debug=True, host='0.0.0.0', port=port, threaded=False)
+    app.run(debug=True, host='0.0.0.0', port=port)

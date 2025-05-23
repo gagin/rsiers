@@ -7,7 +7,7 @@ BACKEND_PORT := 5001
 # Default port for the frontend server
 FRONTEND_PORT := 8000
 
-.PHONY: help install run run-frontend run-backend clean test
+.PHONY: help install run run-frontend run-backend clean test docker-build docker-run docker-stop
 
 help:
 	@echo "Bitcoin Indicator Dashboard"
@@ -20,6 +20,9 @@ help:
 	@echo "  make run-backend  - Run only the backend server"
 	@echo "  make clean        - Remove temporary files and database"
 	@echo "  make test         - Run tests"
+	@echo "  make docker-build - Build Docker containers"
+	@echo "  make docker-run   - Run application with Docker"
+	@echo "  make docker-stop  - Stop Docker containers"
 	@echo ""
 	@echo "Environment variables:"
 	@echo "  PYTHON         - Python interpreter to use (default: python)"
@@ -74,3 +77,19 @@ test:
 	@echo "Running tests..."
 	@$(PYTHON) test_api.py --port $(BACKEND_PORT)
 	@echo "Tests complete!"
+
+docker-build:
+	@echo "Building Docker containers..."
+	@docker-compose build
+	@echo "Docker containers built successfully!"
+
+docker-run:
+	@echo "Starting application with Docker..."
+	@docker-compose up -d
+	@echo "Application started! Access at http://localhost:$(FRONTEND_PORT)"
+	@echo "To view logs, run: docker-compose logs -f"
+
+docker-stop:
+	@echo "Stopping Docker containers..."
+	@docker-compose down
+	@echo "Docker containers stopped successfully!"

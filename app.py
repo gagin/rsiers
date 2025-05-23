@@ -103,9 +103,18 @@ def init_db():
 def fetch_kraken_ohlc(pair, interval):
     """Fetch OHLC data from Kraken API."""
     url = 'https://api.kraken.com/0/public/OHLC'
+
+    # Calculate a timestamp for 2 years ago for monthly data
+    # or 6 months ago for weekly data (as per requirements)
+    if interval == 43200:  # Monthly
+        since = int(time.time() - 2 * 365 * 24 * 60 * 60)  # 2 years ago
+    else:  # Weekly
+        since = int(time.time() - 6 * 30 * 24 * 60 * 60)  # 6 months ago
+
     params = {
         'pair': pair,
-        'interval': interval
+        'interval': interval,
+        'since': since
     }
 
     try:
@@ -313,36 +322,78 @@ def scheduled_data_refresh():
 @app.route('/api/indicators', methods=['GET'])
 def get_indicators():
     """Get the latest indicators."""
+    # Check if date parameter is provided
+    date_param = request.args.get('date')
+
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
 
-    # Get the latest monthly indicators
-    cursor.execute('''
-    SELECT * FROM indicators
-    WHERE timeframe = 'monthly'
-    ORDER BY timestamp DESC
-    LIMIT 1
-    ''')
-    monthly = cursor.fetchone()
+    if date_param:
+        try:
+            # Parse the date string to datetime
+            target_date = datetime.fromisoformat(date_param.replace('Z', '+00:00'))
+            target_timestamp = int(target_date.timestamp())
 
-    # Get the latest weekly indicators
-    cursor.execute('''
-    SELECT * FROM indicators
-    WHERE timeframe = 'weekly'
-    ORDER BY timestamp DESC
-    LIMIT 1
-    ''')
-    weekly = cursor.fetchone()
+            # Get the closest monthly indicators to the target date
+            cursor.execute('''
+            SELECT * FROM indicators
+            WHERE timeframe = 'monthly'
+            ORDER BY ABS(timestamp - ?)
+            LIMIT 1
+            ''', (target_timestamp,))
+            monthly = cursor.fetchone()
+
+            # Get the closest weekly indicators to the target date
+            cursor.execute('''
+            SELECT * FROM indicators
+            WHERE timeframe = 'weekly'
+            ORDER BY ABS(timestamp - ?)
+            LIMIT 1
+            ''', (target_timestamp,))
+            weekly = cursor.fetchone()
+
+            # If no data found for the requested date, return error
+            if not monthly or not weekly:
+                return jsonify({
+                    'error': 'No indicator data available for the requested date',
+                    'message': 'The requested date is outside the available data range'
+                }), 404
+
+            # Use the target date as lastUpdate
+            last_update = target_date.isoformat()
+        except (ValueError, TypeError) as e:
+            return jsonify({'error': f'Invalid date format: {e}'}), 400
+    else:
+        # Get the latest monthly indicators
+        cursor.execute('''
+        SELECT * FROM indicators
+        WHERE timeframe = 'monthly'
+        ORDER BY timestamp DESC
+        LIMIT 1
+        ''')
+        monthly = cursor.fetchone()
+
+        # Get the latest weekly indicators
+        cursor.execute('''
+        SELECT * FROM indicators
+        WHERE timeframe = 'weekly'
+        ORDER BY timestamp DESC
+        LIMIT 1
+        ''')
+        weekly = cursor.fetchone()
+
+        if not monthly or not weekly:
+            return jsonify({'error': 'No indicator data available'}), 404
+
+        # Use the latest timestamp as lastUpdate
+        last_update = datetime.fromtimestamp(max(monthly['timestamp'], weekly['timestamp'])).isoformat()
 
     conn.close()
 
-    if not monthly or not weekly:
-        return jsonify({'error': 'No indicator data available'}), 404
-
     # Format the response
     result = {
-        'lastUpdate': datetime.fromtimestamp(max(monthly['timestamp'], weekly['timestamp'])).isoformat(),
+        'lastUpdate': last_update,
         'indicators': {
             'rsi': {
                 'monthly': monthly['rsi'],

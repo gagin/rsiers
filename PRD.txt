@@ -1,23 +1,26 @@
-# Product Requirements Document (PRD) for Bitcoin Indicator Dashboard App
+# Bitcoin Indicator Dashboard PRD
 
 ## 1. Introduction
 
 ### 1.1 Purpose
 
-This PRD outlines the requirements for a web-based application that retrieves Bitcoin price data from the Kraken API, calculates monthly and weekly values for key technical indicators (RSI, Stochastic RSI, Money Flow Index, Connors RSI, Williams %R, Relative Vigor Index, Adaptive RSI), displays these values in a table, and summarizes them into composite metrics to aid traders in identifying potential sell signals for Bitcoin in a 1-year horizon (mid-2025).
+This PRD outlines the requirements for a web-based application that retrieves Bitcoin price data from the Kraken API, calculates monthly and weekly values for key technical indicators (RSI, Stochastic RSI, Money Flow Index, Connors RSI, Williams %R, Relative Vigor Index, Adaptive RSI), displays these values in a table, and summarizes them into composite metrics to aid Bitcoin holders in identifying potential sell signals with a medium to long-term perspective (months to years). The application focuses on helping long-term holders optimize exit timing rather than short-term traders.
 
 ### 1.2 Background
 
-Bitcoin’s price cycles are driven by momentum and crowd psychology, with indicators like RSI signaling overbought conditions (e.g., RSI ~90 in past peaks). The user aims to detect a selling point in 2025, with the current monthly RSI at 60 and historical reversals at ~90. The app will provide a clear, data-driven interface to monitor these indicators, addressing RSI’s lagging nature with more responsive alternatives like Stochastic RSI, while aligning with Bitcoin’s volatile market dynamics.
+Bitcoin's price cycles are driven by momentum and crowd psychology, with indicators like RSI signaling overbought conditions (e.g., RSI ~90 in past peaks). The user aims to detect a selling point in 2025, with the current monthly RSI at 60 and historical reversals at ~90. The app will provide a clear, data-driven interface to monitor these indicators, addressing RSI's lagging nature with more responsive alternatives like Stochastic RSI, while aligning with Bitcoin's volatile market dynamics. The application includes a time machine feature that allows users to examine historical market peaks and bottoms to better understand indicator behavior during significant market events.
 
 ### 1.3 Scope
 
 The app will:
 
-- Fetch real-time and historical Bitcoin (BTC/USD) data from Kraken’s API.
+- Fetch real-time and historical Bitcoin (BTC/USD) data from Kraken's API.
 - Calculate seven technical indicators on monthly and weekly time frames.
-- Display indicator values in a table with visual cues for overbought/oversold conditions.
+- Display indicator values in a foldable table with visual cues for overbought/oversold conditions and descriptions of each indicator's purpose.
 - Compute composite metrics to summarize momentum and signal potential sell points.
+- Provide a historical table of significant market events with their indicator values.
+- Include a time machine feature that allows users to view indicator values at any historical date.
+- Implement a calendar control for precise date selection in the time machine feature.
 - Be a single-page web app using HTML, JavaScript, and React with Tailwind CSS for styling.
 
 ### 1.4 Assumptions
@@ -29,18 +32,20 @@ The app will:
 
 ## 2. Objectives
 
-- **Primary Goal**: Enable users to monitor Bitcoin’s momentum and detect overbought conditions for a potential sell in mid-2025, using monthly and weekly indicators.
+- **Primary Goal**: Enable Bitcoin holders to monitor momentum and detect overbought conditions for potential sell opportunities over a medium to long-term horizon (months to years), using monthly and weekly indicators.
 - **Secondary Goals**:
-    - Provide a clear, real-time table of indicator values.
+    - Provide a clear, real-time table of indicator values with explanations of each indicator's purpose.
     - Summarize indicators into composite metrics for actionable insights.
-    - Ensure responsiveness and usability for traders.
+    - Allow users to explore historical market events through the time machine feature.
+    - Enable precise historical date selection for analyzing past market conditions.
+    - Ensure responsiveness and usability for long-term Bitcoin holders.
 
 ## 3. Functional Requirements
 
 ### 3.1 Data Retrieval
 
 - **Kraken API Integration**:
-    - Use Kraken’s public REST API (/public/OHLC) to fetch BTC/USD data.
+    - Use Kraken's public REST API (/public/OHLC) to fetch BTC/USD data.
     - Retrieve historical OHLC and volume data for at least 2 years (for monthly calculations) and 6 months (for weekly calculations).
     - Fetch real-time data every 5 minutes for live updates.
     - Handle API rate limits (15–20 calls per minute, per Kraken documentation).[
@@ -59,16 +64,19 @@ The app will calculate the following indicators using Python (via Pyodide) on mo
 
 1. **Relative Strength Index (RSI)**:
     - Formula: RSI = 100 - [100 / (1 + RS)], where RS = (Avg Gain / Avg Loss) over 14 periods.
-    - Overbought: >70 (monitor for ~90, per user’s historical context).
+    - Overbought: >70 (monitor for ~90, per user's historical context).
     - Time Frame: Monthly (14 months), Weekly (14 weeks).
+    - Purpose: The classic momentum oscillator that measures the speed and change of price movements, helping identify overbought conditions.
 2. **Stochastic RSI (StochRSI)**:
     - Formula: StochRSI = (RSI - Lowest RSI) / (Highest RSI - Lowest RSI), over 14 periods.
     - Overbought: >80; %K (main line), %D (3-period SMA of %K).
     - Time Frame: Monthly, Weekly (preferred for faster signals, per prior discussion).
+    - Purpose: Provides earlier signals than standard RSI by measuring RSI relative to its own high-low range.
 3. **Money Flow Index (MFI)**:
     - Formula: MFI = 100 - [100 / (1 + Money Flow Ratio)], where Money Flow = Typical Price × Volume, over 14 periods.
     - Overbought: >80.
     - Time Frame: Monthly, Weekly.
+    - Purpose: Incorporates volume into the analysis, making it useful for confirming price movements with volume support.
 4. **Connors RSI (CRSI)**:
     - Formula: CRSI = (RSI(3) + RSI(Streak, 2) + ROC Rank(100)) / 3.
     - Overbought: >90.
@@ -77,18 +85,22 @@ The app will calculate the following indicators using Python (via Pyodide) on mo
         ![](https://imgs.search.brave.com/sfg3icl6l5D4D10JNJFGW7Ccha70fYOqy9aL229OzYk/rs:fit:64:0:0:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvZWFkY2JjMzZi/OWE1MmUwZDMzMDQ2/ODVhNWMzOWQ1NGEz/ZTgzMDEwYTU3ZDM4/NGZkNjc5NTZiOWQ3/ZTdhMmRhMC9jaGFy/dHNjaG9vbC5zdG9j/a2NoYXJ0cy5jb20v)
 
         ](https://chartschool.stockcharts.com/table-of-contents/technical-indicators-and-overlays/technical-indicators/connorsrsi)
+    - Purpose: Combines three different momentum measurements for a more comprehensive view of market conditions.
 5. **Williams %R**:
     - Formula: %R = [(Highest High - Close) / (Highest High - Lowest Low)] × -100, over 14 periods.
     - Overbought: >-20.
     - Time Frame: Weekly (preferred), Monthly.
+    - Purpose: Identifies overbought and oversold levels with a focus on price extremes relative to recent ranges.
 6. **Relative Vigor Index (RVI)**:
     - Formula: RVI = (Close - Open) / (High - Low), averaged over 10 periods, with a 4-period signal line.
     - Overbought: Divergences or high values.
     - Time Frame: Monthly (preferred), Weekly.
+    - Purpose: Measures the conviction of a price movement by comparing closing prices to opening prices.
 7. **Adaptive RSI**:
-    - Formula: RSI with dynamic lookback period based on market volatility (e.g., Kaufman’s Adaptive Moving Average).
+    - Formula: RSI with dynamic lookback period based on market volatility (e.g., Kaufman's Adaptive Moving Average).
     - Overbought: >80.
     - Time Frame: Monthly (preferred), Weekly.
+    - Purpose: Adjusts to market volatility, becoming more responsive during volatile periods and more stable during quiet periods.
 
 - **Implementation**:
     - Use the stock-indicators Python library (via Pyodide) for RSI, StochRSI, MFI, CRSI, Williams %R, and RVI calculations.[
@@ -97,7 +109,7 @@ The app will calculate the following indicators using Python (via Pyodide) on mo
 
         ](https://pypi.org/project/stock-indicators/)
     - Implement Adaptive RSI using a custom algorithm adjusting the lookback period based on ATR (Average True Range) volatility.
-    - Ensure calculations match Kraken’s chart values by using closing prices and standard settings (e.g., 14-period RSI).[
+    - Ensure calculations match Kraken's chart values by using closing prices and standard settings (e.g., 14-period RSI).[
 
         ![](https://imgs.search.brave.com/IY5wVtB6VKwwSg7YDkUyFtQtc2_JxBCDWSDVqrU85qI/rs:fit:64:0:0:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvNWU3Zjg0ZjA1/YjQ3ZTlkNjQ1ODA1/MjAwODhiNjhjYWU0/OTc4MjM4ZDJlMTBi/ODExYmNiNTkzMjdh/YjM3MGExMS9zdGFj/a292ZXJmbG93LmNv/bS8)
 
@@ -105,13 +117,19 @@ The app will calculate the following indicators using Python (via Pyodide) on mo
 
 ### 3.3 Data Display
 
+- **Introduction Text**:
+    - Display an explanation at the top of the page: "Technical analysis is a kind of astrology, where people draw lines and waves to see patterns in the sky. Yet, the principle of price following mood of the market is solid, and RSI works quite well for that, reliably correlating with peak events. RSI has problems like lag and lack of normalization, so we use a bucket of other RSI-like indicators to address that."
+
 - **Table View**:
-    - Display a table with columns: Indicator Name, Monthly Value, Weekly Value, Overbought Status (color-coded).
+    - Display a foldable table (collapsed by default) with columns: Indicator Name, Description, Monthly Value, Weekly Value, Overbought Status (color-coded).
     - Rows: RSI, StochRSI (%K), MFI, CRSI, Williams %R, RVI, Adaptive RSI.
+    - Include a brief description for each indicator explaining its unique purpose compared to others.
     - Overbought Status: Green (<50), Yellow (50–70), Red (>70 for RSI/MFI/Adaptive RSI, >80 for StochRSI, >90 for CRSI, >-20 for Williams %R).
+
 - **Visual Cues**:
     - Highlight overbought conditions in red (e.g., RSI >80, StochRSI >80).
-    - Include tooltips explaining each indicator’s overbought threshold and significance.
+    - Include tooltips explaining each indicator's overbought threshold and significance.
+
 - **Composite Metrics**:
     - **Composite Overbought Score (COS)**: Average of normalized indicator values (0–100 scale), weighted by sensitivity:
         - StochRSI (30%), CRSI (20%), MFI (20%), RSI (15%), Williams %R (10%), RVI (3%), Adaptive RSI (2%).
@@ -119,30 +137,50 @@ The app will calculate the following indicators using Python (via Pyodide) on mo
         - Threshold: COS >75 indicates a strong sell signal.
     - **Bull Strength Index (BSI)**: Measures the strength of the bullish trend based on how far each indicator is from its neutral value, weighted by importance.
     - Display COS and BSI below the table with a gauge or progress bar (e.g., 0–100 scale, red for >75).
+
 - **Real-Time Updates**:
     - Update table and composite metrics every 5 minutes with new Kraken API data.
     - Show last update timestamp.
 
-### 3.4 User Interface
+### 3.4 Historical Data and Time Machine
+
+- **Historical Table**:
+    - Display a table of significant Bitcoin market events (peaks and bottoms) with their indicator values.
+    - Include price outcomes 1, 6, and 12 months after each event.
+    - Allow users to click on an event to set the time machine to that date.
+
+- **Time Machine Feature**:
+    - Allow users to view indicator values at any historical date.
+    - Implement a calendar control for precise date selection.
+    - Handle boundary conditions (earliest available data, latest available data).
+    - Gracefully handle Kraken API refusals or lack of data for certain dates.
+    - Display price outcomes (if available) for the selected date.
+
+### 3.5 User Interface
 
 - **Single-Page App**:
     - Built with React, JSX, and Tailwind CSS for responsive design.
     - No <form> elements (due to sandbox restrictions).
     - Use className instead of class for JSX attributes.
+
 - **Layout**:
-    - Header: App title (“Bitcoin Indicator Dashboard”) and last update timestamp.
-    - Main Section: Table with indicator values and composite metrics (COS, BSI) below.
+    - Header: App title ("Bitcoin Indicator Dashboard") and last update timestamp.
+    - Introduction: Brief explanation of technical analysis and indicators.
+    - Main Section: Foldable table with indicator values and composite metrics (COS, BSI) below.
+    - Historical Section: Time machine feature and historical events table.
     - Footer: Links to Kraken API docs and indicator explanations.
+
 - **Interactivity**:
     - Allow users to toggle between monthly and weekly views.
-    - Provide a “Refresh” button for manual API data fetch.
+    - Provide a "Refresh" button for manual API data fetch.
     - Include a settings panel to adjust indicator periods (e.g., RSI 14 vs. 10) and composite weights.
+    - Allow users to expand/collapse the indicators table.
 
-### 3.5 Non-Functional Requirements
+### 3.6 Non-Functional Requirements
 
 - **Performance**: Load and calculate indicators within 5 seconds for 2 years of monthly data and 6 months of weekly data.
 - **Reliability**: Handle API errors gracefully with retry logic (3 attempts) and user notifications.
-- **Security**: Use Kraken’s public API (no private keys required). Avoid storing sensitive data.
+- **Security**: Use Kraken's public API (no private keys required). Avoid storing sensitive data.
 - **Compatibility**: Support modern browsers (Chrome, Firefox, Safari, Edge).
 - **Scalability**: Handle up to 100 concurrent users with minimal latency.
 
@@ -166,20 +204,12 @@ The app will calculate the following indicators using Python (via Pyodide) on mo
 
     ](https://algotrading101.com/learn/kraken-api-guide/)
 
-### 4.2 Sample Code
-
-Below is a sample implementation for the app, including API data retrieval, indicator calculations, and a React-based UI.
-
-index.html
-
-html
-
-Show inline
 
 ## 5. User Stories
 
-- **As a trader**, I want to see monthly and weekly values for RSI, StochRSI, MFI, CRSI, Williams %R, RVI, and Adaptive RSI in a table, so I can assess Bitcoin’s momentum and plan a sell in 2025.
-- **As a trader**, I want color-coded overbought statuses, so I can quickly identify potential sell signals.
-- **As a trader**, I want composite metrics (COS, BSI), so I can get a summarized view of market momentum.
-- **As a trader**, I want real-time updates every 5 minutes, so I can stay informed of current market conditions.
-- **As a trader**, I want to toggle between monthly and weekly views, so I can align with my 1-year horizon and refine timing.
+- **As a Bitcoin holder**, I want to see monthly and weekly values for RSI, StochRSI, MFI, CRSI, Williams %R, RVI, and Adaptive RSI in a table, so I can assess Bitcoin's momentum and plan a sell in the medium to long term.
+- **As a Bitcoin holder**, I want color-coded overbought statuses, so I can quickly identify potential sell signals.
+- **As a Bitcoin holder**, I want composite metrics (COS, BSI), so I can get a summarized view of market momentum.
+- **As a Bitcoin holder**, I want to toggle between monthly and weekly views, so I can align with my investment horizon and refine timing.
+- **As a Bitcoin holder**, I want to explore historical market events, so I can understand how indicators behaved during previous peaks and bottoms.
+- **As a Bitcoin holder**, I want to use a time machine feature with a calendar control, so I can examine indicator values at any specific historical date.
