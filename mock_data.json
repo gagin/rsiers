@@ -1,0 +1,33 @@
+{
+  "lastUpdate": "2025-05-22T18:00:00.000Z",
+  "indicators": {
+    "rsi": {
+      "monthly": 68,
+      "weekly": 72
+    },
+    "stochRsi": {
+      "monthly": 75,
+      "weekly": 82
+    },
+    "mfi": {
+      "monthly": 65,
+      "weekly": 78
+    },
+    "crsi": {
+      "monthly": 82,
+      "weekly": 88
+    },
+    "williamsR": {
+      "monthly": -25,
+      "weekly": -18
+    },
+    "rvi": {
+      "monthly": 0.65,
+      "weekly": 0.72
+    },
+    "adaptiveRsi": {
+      "monthly": 70,
+      "weekly": 75
+    }
+  }
+}

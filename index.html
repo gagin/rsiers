@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bitcoin Indicator Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/pyodide/v0.23.4/full/pyodide.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100">
+  <div id="root"></div>
+  <script src="https://cdn.jsdelivr.net/npm/babel-standalone@6/babel.min.js"></script>
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+    function App() {
+      const [indicators, setIndicators] = useState(null);
+      const [compositeMetrics, setCompositeMetrics] = useState(null);
+      const [lastUpdate, setLastUpdate] = useState(null);
+      const [loading, setLoading] = useState(true);
+      const [error, setError] = useState(null);
+      const [viewMode, setViewMode] = useState('both'); // 'monthly', 'weekly', or 'both'
+      const [dataSource, setDataSource] = useState('loading'); // 'kraken', 'mock', or 'loading'
+
+      // Fetch data from our backend API or use mock data
+      const fetchData = async () => {
+        setLoading(true);
+        setError(null);
+
+        try {
+          // Try to fetch indicator data from our backend API
+          try {
+            const response = await axios.get('http://localhost:5001/api/indicators');
+
+            // Set indicators from the API response
+            setIndicators(response.data.indicators);
+
+            // Calculate composite metrics
+            const metrics = calculateCompositeMetrics(response.data.indicators);
+            setCompositeMetrics(metrics);
+
+            // Set last update time
+            setLastUpdate(new Date(response.data.lastUpdate));
+
+            // Set data source to Kraken
+            setDataSource('kraken');
+
+            console.log('Successfully fetched data from API');
+          } catch (apiError) {
+            console.error('API Error:', apiError);
+            console.log('Falling back to mock data...');
+
+            // Fallback to mock data
+            const mockData = {
+              indicators: {
+                rsi: { monthly: 68, weekly: 72 },
+                stochRsi: { monthly: 75, weekly: 82 },
+                mfi: { monthly: 65, weekly: 78 },
+                crsi: { monthly: 82, weekly: 88 },
+                williamsR: { monthly: -25, weekly: -18 },
+                rvi: { monthly: 0.65, weekly: 0.72 },
+                adaptiveRsi: { monthly: 70, weekly: 75 }
+              }
+            };
+
+            // Set indicators from mock data
+            setIndicators(mockData.indicators);
+
+            // Calculate composite metrics
+            const metrics = calculateCompositeMetrics(mockData.indicators);
+            setCompositeMetrics(metrics);
+
+            // Set last update time
+            setLastUpdate(new Date());
+
+            // Set data source to mock
+            setDataSource('mock');
+          }
+        } catch (err) {
+          setError('Failed to process data: ' + (err.message || 'Please try again.'));
+          console.error('Processing Error:', err);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      // Function to manually refresh data
+      const refreshData = async () => {
+        setLoading(true);
+        setError(null);
+
+        try {
+          try {
+            // Try to call the refresh endpoint
+            await axios.post('http://localhost:5001/api/refresh');
+
+            // Fetch the updated data
+            await fetchData();
+
+            console.log('Data refreshed successfully');
+          } catch (apiError) {
+            console.error('Refresh API Error:', apiError);
+            console.log('Using mock data refresh...');
+
+            // Fallback to mock data
+            const mockData = {
+              indicators: {
+                rsi: { monthly: Math.floor(Math.random() * 30) + 60, weekly: Math.floor(Math.random() * 30) + 60 },
+                stochRsi: { monthly: Math.floor(Math.random() * 30) + 60, weekly: Math.floor(Math.random() * 30) + 60 },
+                mfi: { monthly: Math.floor(Math.random() * 30) + 60, weekly: Math.floor(Math.random() * 30) + 60 },
+                crsi: { monthly: Math.floor(Math.random() * 30) + 60, weekly: Math.floor(Math.random() * 30) + 60 },
+                williamsR: { monthly: -Math.floor(Math.random() * 30) - 10, weekly: -Math.floor(Math.random() * 30) - 10 },
+                rvi: { monthly: 0.5 + Math.random() * 0.4, weekly: 0.5 + Math.random() * 0.4 },
+                adaptiveRsi: { monthly: Math.floor(Math.random() * 30) + 60, weekly: Math.floor(Math.random() * 30) + 60 }
+              }
+            };
+
+            // Set indicators from mock data
+            setIndicators(mockData.indicators);
+
+            // Calculate composite metrics
+            const metrics = calculateCompositeMetrics(mockData.indicators);
+            setCompositeMetrics(metrics);
+
+            // Set last update time
+            setLastUpdate(new Date());
+
+            // Set data source to mock
+            setDataSource('mock');
+          }
+        } catch (err) {
+          setError('Failed to refresh data: ' + (err.message || 'Please try again.'));
+          console.error('Refresh Error:', err);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+
+
+      // No longer need to calculate indicators as they come from the backend API
+
+      // Calculate composite metrics
+      const calculateCompositeMetrics = (indicators) => {
+        // Weights for Composite Overbought Score
+        const weights = {
+          stochRsi: 0.30,
+          crsi: 0.20,
+          mfi: 0.20,
+          rsi: 0.15,
+          williamsR: 0.10,
+          rvi: 0.03,
+          adaptiveRsi: 0.02
+        };
+
+        // Overbought thresholds
+        const thresholds = {
+          rsi: 70,
+          stochRsi: 80,
+          mfi: 70,
+          crsi: 90,
+          williamsR: -20, // Note: Williams %R is inverted
+          rvi: 0.7,
+          adaptiveRsi: 70
+        };
+
+        // Calculate normalized values and COS for monthly
+        let monthlyNormalized = {};
+        let monthlyOverbought = 0;
+        Object.keys(indicators).forEach(key => {
+          let value = indicators[key].monthly;
+          let threshold = thresholds[key];
+
+          // Special case for Williams %R (inverted)
+          if (key === 'williamsR') {
+            monthlyNormalized[key] = value <= threshold ? 100 : (Math.abs(value) / Math.abs(threshold)) * 100;
+            if (value >= threshold) monthlyOverbought++;
+          } else {
+            monthlyNormalized[key] = (value / threshold) * 100;
+            if (value >= threshold) monthlyOverbought++;
+          }
+        });
+
+        // Calculate COS for monthly
+        let monthlyCOS = 0;
+        Object.keys(weights).forEach(key => {
+          monthlyCOS += weights[key] * monthlyNormalized[key];
+        });
+
+        // Calculate normalized values and COS for weekly
+        let weeklyNormalized = {};
+        let weeklyOverbought = 0;
+        Object.keys(indicators).forEach(key => {
+          let value = indicators[key].weekly;
+          let threshold = thresholds[key];
+
+          // Special case for Williams %R (inverted)
+          if (key === 'williamsR') {
+            weeklyNormalized[key] = value <= threshold ? 100 : (Math.abs(value) / Math.abs(threshold)) * 100;
+            if (value >= threshold) weeklyOverbought++;
+          } else {
+            weeklyNormalized[key] = (value / threshold) * 100;
+            if (value >= threshold) weeklyOverbought++;
+          }
+        });
+
+        // Calculate COS for weekly
+        let weeklyCOS = 0;
+        Object.keys(weights).forEach(key => {
+          weeklyCOS += weights[key] * weeklyNormalized[key];
+        });
+
+        // Calculate TSI (Trend Strength Index)
+        const monthlyTSI = (monthlyOverbought / Object.keys(indicators).length) * 100;
+        const weeklyTSI = (weeklyOverbought / Object.keys(indicators).length) * 100;
+
+        return {
+          cos: { monthly: monthlyCOS, weekly: weeklyCOS },
+          tsi: { monthly: monthlyTSI, weekly: weeklyTSI }
+        };
+      };
+
+      // Get status color based on indicator value
+      const getStatusColor = (indicator, value) => {
+        if (indicator === 'williamsR') {
+          return value >= -20 ? 'bg-red-100 text-red-800' :
+                 value >= -50 ? 'bg-yellow-100 text-yellow-800' :
+                 'bg-green-100 text-green-800';
+        } else if (indicator === 'crsi') {
+          return value >= 90 ? 'bg-red-100 text-red-800' :
+                 value >= 50 ? 'bg-yellow-100 text-yellow-800' :
+                 'bg-green-100 text-green-800';
+        } else if (indicator === 'stochRsi') {
+          return value >= 80 ? 'bg-red-100 text-red-800' :
+                 value >= 50 ? 'bg-yellow-100 text-yellow-800' :
+                 'bg-green-100 text-green-800';
+        } else {
+          return value >= 70 ? 'bg-red-100 text-red-800' :
+                 value >= 50 ? 'bg-yellow-100 text-yellow-800' :
+                 'bg-green-100 text-green-800';
+        }
+      };
+
+      // Get tooltip text for each indicator
+      const getTooltip = (indicator) => {
+        const tooltips = {
+          rsi: "Relative Strength Index - Overbought above 70, extreme above 80",
+          stochRsi: "Stochastic RSI - Overbought above 80",
+          mfi: "Money Flow Index - Overbought above 70, extreme above 80",
+          crsi: "Connors RSI - Overbought above 90",
+          williamsR: "Williams %R - Overbought above -20",
+          rvi: "Relative Vigor Index - Overbought above 0.7",
+          adaptiveRsi: "Adaptive RSI - Overbought above 70"
+        };
+        return tooltips[indicator] || "";
+      };
+
+      // Format indicator name for display
+      const formatIndicatorName = (name) => {
+        const names = {
+          rsi: "RSI",
+          stochRsi: "Stochastic RSI (%K)",
+          mfi: "MFI",
+          crsi: "Connors RSI",
+          williamsR: "Williams %R",
+          rvi: "RVI",
+          adaptiveRsi: "Adaptive RSI"
+        };
+        return names[name] || name;
+      };
+
+      // Load data on component mount and set up interval
+      useEffect(() => {
+        fetchData();
+
+        // Set up interval for refreshing data every 5 minutes
+        const interval = setInterval(fetchData, 5 * 60 * 1000);
+
+        // Clean up interval on component unmount
+        return () => clearInterval(interval);
+      }, []);
+
+      return (
+        <div className="container mx-auto px-4 py-8">
+          <header className="mb-8">
+            <h1 className="text-3xl font-bold text-center text-gray-800">Bitcoin Indicator Dashboard</h1>
+          </header>
+
+          <div className="mb-6 flex justify-center space-x-4">
+            <button
+              onClick={() => setViewMode('both')}
+              className={`px-4 py-2 rounded ${viewMode === 'both' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}
+            >
+              Both
+            </button>
+            <button
+              onClick={() => setViewMode('monthly')}
+              className={`px-4 py-2 rounded ${viewMode === 'monthly' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}
+            >
+              Monthly
+            </button>
+            <button
+              onClick={() => setViewMode('weekly')}
+              className={`px-4 py-2 rounded ${viewMode === 'weekly' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}
+            >
+              Weekly
+            </button>
+            <button
+              onClick={refreshData}
+              className="px-4 py-2 bg-green-600 text-white rounded"
+              disabled={loading}
+            >
+              {loading ? 'Refreshing...' : 'Refresh Data'}
+            </button>
+          </div>
+
+          {error && (
+            <div className="bg-red-100 text-red-800 p-4 rounded mb-6">
+              {error}
+            </div>
+          )}
+
+          {loading && !indicators ? (
+            <div className="text-center py-8">
+              <p className="text-gray-600">Loading indicator data...</p>
+            </div>
+          ) : indicators ? (
+            <div className="bg-white rounded-lg shadow overflow-hidden">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Indicator
+                    </th>
+                    {(viewMode === 'both' || viewMode === 'monthly') && (
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Monthly Value
+                      </th>
+                    )}
+                    {(viewMode === 'both' || viewMode === 'weekly') && (
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Weekly Value
+                      </th>
+                    )}
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Status
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {Object.keys(indicators).map(indicator => (
+                    <tr key={indicator}>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <div className="text-sm font-medium text-gray-900">
+                            {formatIndicatorName(indicator)}
+                          </div>
+                          <div className="ml-2 text-gray-400 cursor-help" title={getTooltip(indicator)}>
+                            ⓘ
+                          </div>
+                        </div>
+                      </td>
+
+                      {(viewMode === 'both' || viewMode === 'monthly') && (
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">
+                            {indicator === 'williamsR' ? indicators[indicator].monthly.toFixed(2) :
+                             indicator === 'rvi' ? indicators[indicator].monthly.toFixed(2) :
+                             indicators[indicator].monthly.toFixed(0)}
+                          </div>
+                        </td>
+                      )}
+
+                      {(viewMode === 'both' || viewMode === 'weekly') && (
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">
+                            {indicator === 'williamsR' ? indicators[indicator].weekly.toFixed(2) :
+                             indicator === 'rvi' ? indicators[indicator].weekly.toFixed(2) :
+                             indicators[indicator].weekly.toFixed(0)}
+                          </div>
+                        </td>
+                      )}
+
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                          getStatusColor(indicator, viewMode === 'monthly' ? indicators[indicator].monthly : indicators[indicator].weekly)
+                        }`}>
+                          {viewMode === 'monthly' ?
+                            (indicators[indicator].monthly >= (indicator === 'williamsR' ? -20 :
+                                                              indicator === 'crsi' ? 90 :
+                                                              indicator === 'stochRsi' ? 80 : 70) ? 'Overbought' : 'Normal') :
+                            (indicators[indicator].weekly >= (indicator === 'williamsR' ? -20 :
+                                                             indicator === 'crsi' ? 90 :
+                                                             indicator === 'stochRsi' ? 80 : 70) ? 'Overbought' : 'Normal')
+                          }
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : null}
+
+          {compositeMetrics && (
+            <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="bg-white p-6 rounded-lg shadow">
+                <h3 className="text-lg font-medium text-gray-900 mb-4">Composite Overbought Score (COS)</h3>
+                <div className="relative pt-1">
+                  <div className="flex mb-2 items-center justify-between">
+                    <div>
+                      <span className="text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full text-blue-600 bg-blue-200">
+                        {viewMode === 'monthly' ? 'Monthly' : 'Weekly'}
+                      </span>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-xs font-semibold inline-block text-blue-600">
+                        {viewMode === 'monthly'
+                          ? compositeMetrics.cos.monthly.toFixed(1)
+                          : compositeMetrics.cos.weekly.toFixed(1)}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="overflow-hidden h-2 mb-4 text-xs flex rounded bg-gray-200">
+                    <div
+                      style={{
+                        width: `${Math.min(100, viewMode === 'monthly'
+                          ? compositeMetrics.cos.monthly
+                          : compositeMetrics.cos.weekly)}%`
+                      }}
+                      className={`shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center ${
+                        (viewMode === 'monthly' ? compositeMetrics.cos.monthly : compositeMetrics.cos.weekly) > 75
+                          ? 'bg-red-500'
+                          : (viewMode === 'monthly' ? compositeMetrics.cos.monthly : compositeMetrics.cos.weekly) > 50
+                            ? 'bg-yellow-500'
+                            : 'bg-green-500'
+                      }`}
+                    ></div>
+                  </div>
+                  <p className="text-sm text-gray-600">
+                    COS combines all indicators with weighted importance. Values above 75 suggest extreme overbought conditions.
+                  </p>
+                </div>
+              </div>
+
+              <div className="bg-white p-6 rounded-lg shadow">
+                <h3 className="text-lg font-medium text-gray-900 mb-4">Trend Strength Index (TSI)</h3>
+                <div className="relative pt-1">
+                  <div className="flex mb-2 items-center justify-between">
+                    <div>
+                      <span className="text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full text-blue-600 bg-blue-200">
+                        {viewMode === 'monthly' ? 'Monthly' : 'Weekly'}
+                      </span>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-xs font-semibold inline-block text-blue-600">
+                        {viewMode === 'monthly'
+                          ? compositeMetrics.tsi.monthly.toFixed(1) + '%'
+                          : compositeMetrics.tsi.weekly.toFixed(1) + '%'}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="overflow-hidden h-2 mb-4 text-xs flex rounded bg-gray-200">
+                    <div
+                      style={{
+                        width: `${Math.min(100, viewMode === 'monthly'
+                          ? compositeMetrics.tsi.monthly
+                          : compositeMetrics.tsi.weekly)}%`
+                      }}
+                      className={`shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center ${
+                        (viewMode === 'monthly' ? compositeMetrics.tsi.monthly : compositeMetrics.tsi.weekly) > 75
+                          ? 'bg-red-500'
+                          : (viewMode === 'monthly' ? compositeMetrics.tsi.monthly : compositeMetrics.tsi.weekly) > 50
+                            ? 'bg-yellow-500'
+                            : 'bg-green-500'
+                      }`}
+                    ></div>
+                  </div>
+                  <p className="text-sm text-gray-600">
+                    TSI shows the percentage of indicators in overbought territory. Values above 50% suggest caution.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <footer className="mt-12 text-center text-sm">
+            <div className="mb-2">
+              {dataSource === 'kraken' ? (
+                <p className="text-gray-600">
+                  Data refreshes automatically every 5 minutes. Last refresh: {lastUpdate ? lastUpdate.toLocaleString() : 'Loading...'}
+                  <span className="ml-2 bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded">Live Kraken Data</span>
+                </p>
+              ) : dataSource === 'mock' ? (
+                <p className="text-amber-600">
+                  <span className="bg-amber-100 text-amber-800 text-xs font-medium px-2.5 py-0.5 rounded">Mock Data</span>
+                  <span className="ml-2">Backend unavailable - using simulated data</span>
+                </p>
+              ) : (
+                <p className="text-gray-600">Loading data source...</p>
+              )}
+            </div>
+            <p className="mt-2 text-gray-600">
+              <a href="https://docs.kraken.com/rest/" className="text-blue-600 hover:underline" target="_blank" rel="noopener noreferrer">
+                Kraken API Documentation
+              </a>
+              {' | '}
+              <a href="https://www.investopedia.com/terms/r/rsi.asp" className="text-blue-600 hover:underline" target="_blank" rel="noopener noreferrer">
+                Learn about RSI
+              </a>
+            </p>
+          </footer>
+        </div>
+      );
+    }
+
+    // No longer need technical indicator calculation functions as they're handled by the backend
+
+    // Render the React app
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>
