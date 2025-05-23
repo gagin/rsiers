@@ -1,4 +1,4 @@
-# Bitcoin Indicator Dashboard Codebase Documentation
+# Bitcoin Indicator Dashboard Codebase Documentation (v0.2.0)
 
 This document provides an overview of the files in the Bitcoin Indicator Dashboard project, explaining their purpose and relationships.
 
@@ -21,6 +21,8 @@ This document provides an overview of the files in the Bitcoin Indicator Dashboa
   - Fetches data from the backend API
   - Visualizes indicators and metrics
   - Provides the time machine feature
+  - Shows "Backend unavailable, retry" button when backend is down
+  - Auto-switches to time machine mode with latest historical data when backend is unavailable
 
 ### Data
 
@@ -64,7 +66,7 @@ This document provides an overview of the files in the Bitcoin Indicator Dashboa
 
 - **`create_server.sh`** - Creates the simple server if it doesn't exist
 
-## Docker Support
+## Docker Support (Recommended Deployment Method)
 
 - **`Dockerfile`** - Defines how to build the Docker image for the application
 
@@ -77,6 +79,9 @@ This document provides an overview of the files in the Bitcoin Indicator Dashboa
 - **`.dockerignore`** - Specifies files to exclude from the Docker build context
 
 - **`docker-start.sh`** - Convenience script to start the application with Docker Compose
+  - Recommended way to run the application
+  - Avoids dependency and environment issues
+  - Prevents port conflicts with system services (like AirPlay on macOS)
 
 ## Development and Debugging
 
@@ -92,6 +97,9 @@ This document provides an overview of the files in the Bitcoin Indicator Dashboa
 - **`PRD.txt`** - Product Requirements Document detailing the application's requirements and features
 
 - **`README.md`** - Project documentation with setup instructions and feature overview
+  - Emphasizes Docker as the recommended deployment method
+  - Includes thumbnail of screenshot that opens full-size image when clicked
+  - Notes that venv/conda instructions are untested
 
 - **`CODEBASE.md`** - This file, documenting the codebase structure
 
@@ -107,16 +115,21 @@ This document provides an overview of the files in the Bitcoin Indicator Dashboa
 
 ## Development Workflow
 
-### Standard Setup
+### Docker Setup (Recommended)
+1. Install Docker and Docker Compose
+2. Run `./docker-start.sh` to build and start the application
+3. Access the frontend at http://localhost:8000
+4. View logs with `docker-compose logs -f`
+5. Stop the application with `docker-compose down`
+
+### Standard Setup (Alternative)
 1. Use `make install` or `setup.py` to set up the environment
 2. Use `make run` or `fix_and_run.sh` to start the application
 3. Access the frontend at http://localhost:8000
 4. Use `test_api.py` to verify the backend is working correctly
 5. Use `update_historical_bsi.py` to update BSI values if needed
 
-### Docker Setup
-1. Install Docker and Docker Compose
-2. Run `./docker-start.sh` to build and start the application
-3. Access the frontend at http://localhost:8000
-4. View logs with `docker-compose logs -f`
-5. Stop the application with `docker-compose down`
+### Error Recovery
+- If the backend is unavailable, the frontend will automatically switch to Time Machine mode with the latest historical data
+- A red "Backend unavailable, retry" button will appear, allowing users to retry the connection
+- The "Exit Time Machine" button is hidden when the backend is unavailable
