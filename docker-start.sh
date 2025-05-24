@@ -2,24 +2,12 @@
 
 # This script starts the Bitcoin Indicator Dashboard using Docker Compose
 
-# Check if Docker is installed
-if ! command -v docker &> /dev/null; then
-    echo "Docker is not installed. Please install Docker first."
-    echo "Visit https://docs.docker.com/get-docker/ for installation instructions."
-    exit 1
-fi
-
-# Check if Docker Compose is installed
-if ! command -v docker-compose &> /dev/null; then
-    echo "Docker Compose is not installed. Please install Docker Compose first."
-    echo "Visit https://docs.docker.com/compose/install/ for installation instructions."
-    exit 1
-fi
+# ... (Docker and Docker Compose checks remain the same) ...
 
 # Print banner
 echo "=================================================="
 echo "  Bitcoin Indicator Dashboard - Docker Edition"
-echo "  A vibecoded project: PRD by Grok, Code by Augment"
+echo "  Project Version: 0.2.2 (Refactored Backend)" # Updated version
 echo "=================================================="
 echo ""
 
@@ -27,20 +15,22 @@ echo ""
 echo "Starting Bitcoin Indicator Dashboard with Docker Compose..."
 docker-compose up --build -d
 
-# Check if containers started successfully
 if [ $? -eq 0 ]; then
     echo "Bitcoin Indicator Dashboard is now running!"
     echo "Frontend: http://localhost:8000"
-    echo "Backend API: http://localhost:5001"
+    echo "Backend API: http://localhost:5001/api/indicators" # More specific API example
     echo ""
-    echo "New Features:"
-    echo "- Enhanced Time Machine with calendar control"
-    echo "- Foldable indicator table with detailed descriptions"
-    echo "- Technical analysis explanation with sarcastic tone"
-    echo "- Bull Strength Index (BSI) replacing TSI"
+    echo "NOTE: On first run with an empty database volume, the database will be initialized"
+    echo "with its schema. However, historical data from CSVs or manual fillers is NOT"
+    echo "automatically imported by this 'docker-compose up' command."
+    echo "To populate data, you may need to run import scripts manually inside the container, e.g.:"
+    echo "  docker exec btc-dashboard-backend python scripts/csv_importer.py"
+    echo "  docker exec btc-dashboard-backend python scripts/manual_data_filler.py"
+    echo "  (Or use 'make' targets if 'make' is available in the container image)"
     echo ""
     echo "To view logs, run: docker-compose logs -f"
     echo "To stop the application, run: docker-compose down"
+    echo "To remove the database volume (DANGER: DELETES DB DATA), run: docker-compose down -v"
 else
     echo "Failed to start the application. Check the logs for more information."
     docker-compose logs

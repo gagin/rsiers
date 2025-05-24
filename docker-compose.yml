@@ -5,34 +5,43 @@ services:
     build: .
     container_name: btc-dashboard-backend
     ports:
-      - "5001:5001"  # Keep original port mapping
+      - "5001:5001"
     volumes:
-      - ./:/app
-      - bitcoin_data:/app/data
+      # Mount current directory to /app for development (reflects code changes)
+      # Mount a named volume for the database to persist it
+      - ./:/app 
+      - bitcoin_db_data:/app # Persist the DB file here (project root inside container)
     environment:
-      - FLASK_ENV=production
+      - FLASK_ENV=production # Or development
+      # Add any other environment variables your app might need
+      - PYTHONUNBUFFERED=1 # For seeing Python logs immediately
     restart: unless-stopped
-    command: python simple_server.py
+    # The command to run when the container starts.
+    # This will execute backend/main.py which initializes the DB schema.
+    # Data import (CSV, manual) is not done automatically here yet.
+    command: python backend/main.py
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5001/api/indicators"]
+      test: ["CMD-SHELL", "curl -f http://localhost:5001/api/indicators?date=2023-01-01 || exit 1"]
       interval: 30s
       timeout: 10s
-      retries: 3
-      start_period: 10s
+      retries: 5 # Increased retries for initial startup
+      start_period: 30s # Longer start period to allow app and DB init
 
   frontend:
-    image: python:3.12-slim
+    image: python:3.12-slim # Using python image just to serve static files
     container_name: btc-dashboard-frontend
     ports:
-      - "8000:8000"  # Keep original port mapping
+      - "8000:8000"
     volumes:
-      - ./:/app
+      - ./:/app # Mounts index.html and components/
     working_dir: /app
     depends_on:
-      backend:
-        condition: service_healthy
+      backend: # Ensures backend is started, but not necessarily fully ready for data
+        condition: service_started # Changed from service_healthy to allow frontend to start sooner
+                                  # Healthcheck on backend will still gate traffic effectively.
     restart: unless-stopped
     command: python -m http.server 8000
 
 volumes:
-  bitcoin_data:
+  bitcoin_db_data: # Defines the named volume for the database
+    # driver: local # Default driver

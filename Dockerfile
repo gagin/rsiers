@@ -2,18 +2,24 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
-# Copy requirements first to leverage Docker cache
-COPY requirements.txt .
-
-# Install dependencies and curl for healthcheck
+# Install curl (for healthcheck if needed, or remove if healthcheck uses internal means)
 RUN apt-get update && apt-get install -y curl && \
-    pip install --no-cache-dir -r requirements.txt
+    apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Copy application code
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy entrypoint script first and set permissions
+COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
+# Copy the rest of the application code
 COPY . .
 
-# Expose ports for the backend API
+# Optional: Make scripts executable if you prefer, though `python script.py` doesn't require it
+# RUN chmod +x /app/scripts/*.py 
+
 EXPOSE 5001
 
-# Command to run the application
-CMD ["python", "simple_server.py"]
+ENTRYPOINT ["docker-entrypoint.sh"]
+CMD ["python", "backend/main.py"]

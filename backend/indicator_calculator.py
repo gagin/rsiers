@@ -2,61 +2,101 @@
 import pandas as pd
 import numpy as np
 import logging
-from datetime import datetime, timezone, timedelta # Added timedelta
+from datetime import datetime as PyDateTime, timezone, timedelta
 
-# Assuming data_sources is in the same 'backend' package
-from .data_sources import fetch_and_store_daily_ohlcv 
+# Import individual calculator functions from the new modules
+from backend.indicators import rsi
+from backend.indicators import stochastic_rsi 
+from backend.indicators import mfi
+from backend.indicators import connors_rsi
+from backend.indicators import williams_r
+from backend.indicators import rvi
+from backend.indicators import adaptive_rsi
+
+# Import config
+from backend import config # Assuming config.py is in backend/
 
 logger = logging.getLogger(__name__)
 
-def calculate_rsi_series(prices_series: pd.Series, period=14) -> pd.Series:
-    if not isinstance(prices_series, pd.Series):
-        prices_series = pd.Series(prices_series) # Ensure it's a Series
+# Helper to get the last valid value from a Series
+def _get_last_value_from_series(series: pd.Series):
+    if series is not None and not series.empty:
+        last_valid_idx = series.last_valid_index()
+        if last_valid_idx is not None:
+            value = series.loc[last_valid_idx]
+            return value if pd.notna(value) else None
+    return None
 
-    if len(prices_series) < period + 1:
-        logger.warning(f"Not enough data for RSI ({len(prices_series)} points, need {period+1}). Returning empty Series.")
-        return pd.Series(dtype=float, index=prices_series.index) # Return empty series with original index if possible
+# --- Wrapper functions calling the new indicator modules ---
+# These wrappers will now fetch params from config.
 
-    delta = prices_series.diff()
-    gain = (delta.where(delta > 0, 0.0)).fillna(0.0) # Ensure fillna with float
-    loss = (-delta.where(delta < 0, 0.0)).fillna(0.0) # Ensure fillna with float
+def calculate_rsi_series(ohlc_df: pd.DataFrame, timeframe_label: str = None) -> pd.Series:
+    params = config.get_indicator_params("rsi", timeframe_label)
+    return rsi.calculate(ohlc_df, period=params.get("period", 14))
 
-    avg_gain = gain.rolling(window=period, min_periods=period).mean()
-    avg_loss = loss.rolling(window=period, min_periods=period).mean()
+def calculate_stoch_rsi_series(ohlc_df: pd.DataFrame, timeframe_label: str = None) -> pd.Series:
+    params = config.get_indicator_params("stochRsi", timeframe_label)
+    return stochastic_rsi.calculate(ohlc_df, 
+                                    rsi_period=params.get("rsi_period", 14), 
+                                    stoch_period=params.get("stoch_period", 14), 
+                                    k_smooth=params.get("k_smooth", 3))
+
+def calculate_mfi_series(ohlc_df: pd.DataFrame, timeframe_label: str = None) -> pd.Series:
+    params = config.get_indicator_params("mfi", timeframe_label)
+    return mfi.calculate(ohlc_df, period=params.get("period", 14))
+
+def calculate_crsi_series(ohlc_df: pd.DataFrame, timeframe_label: str = None) -> pd.Series:
+    params = config.get_indicator_params("crsi", timeframe_label)
+    # Dynamic adjustment of rank_len based on actual data length for this timeframe
+    # This is better done here where ohlc_df is available.
+    dynamic_rank_len = params.get("rank_len", 100) # Start with configured/default
+    if timeframe_label == 'monthly':
+        dynamic_rank_len = min(params.get("rank_len", 12), max(5, len(ohlc_df) - 10)) 
+    elif timeframe_label == 'weekly':
+        dynamic_rank_len = min(params.get("rank_len", 50), max(10, len(ohlc_df) - 10))
     
-    # Avoid division by zero if avg_loss is 0 for a period
-    rs = avg_gain / avg_loss.replace(0, 1e-10) 
-    rsi = 100.0 - (100.0 / (1.0 + rs))
-    return rsi
+    return connors_rsi.calculate(ohlc_df, 
+                                 rsi_short_len=params.get("rsi_short_len", 3), 
+                                 rsi_streak_len=params.get("rsi_streak_len", 2), 
+                                 rank_len=dynamic_rank_len) # Use dynamically adjusted rank_len
 
-# Placeholder indicator calculations - ensure they return Series with same index as input
-def calculate_stoch_rsi_series(prices: pd.Series, period=14) -> pd.Series: 
-    return pd.Series([75.0] * len(prices.index), index=prices.index)
+def calculate_williams_r_series(ohlc_df: pd.DataFrame, timeframe_label: str = None) -> pd.Series:
+    params = config.get_indicator_params("williamsR", timeframe_label)
+    return williams_r.calculate(ohlc_df, period=params.get("period", 14))
 
-def calculate_mfi_series(highs: pd.Series, lows: pd.Series, closes: pd.Series, volumes: pd.Series, period=14) -> pd.Series:
-    return pd.Series([65.0] * len(closes.index), index=closes.index)
+def calculate_rvi_series(ohlc_df: pd.DataFrame, timeframe_label: str = None) -> pd.Series:
+    params = config.get_indicator_params("rvi", timeframe_label)
+    return rvi.calculate(ohlc_df, period=params.get("period", 10))
 
-def calculate_crsi_series(closes: pd.Series, period=14) -> pd.Series:
-    return pd.Series([82.0] * len(closes.index), index=closes.index)
+def calculate_adaptive_rsi_series(ohlc_df: pd.DataFrame, timeframe_label: str = None) -> pd.Series:
+    params = config.get_indicator_params("adaptiveRsi", timeframe_label)
+    return adaptive_rsi.calculate(ohlc_df, 
+                                  period=params.get("period", 14), 
+                                  kama_n=params.get("kama_n", 10), 
+                                  kama_fast_ema=params.get("kama_fast_ema", 2), 
+                                  kama_slow_ema=params.get("kama_slow_ema", 30))
 
-def calculate_williams_r_series(highs: pd.Series, lows: pd.Series, closes: pd.Series, period=14) -> pd.Series:
-    return pd.Series([-25.0] * len(closes.index), index=closes.index)
 
-def calculate_rvi_series(opens: pd.Series, highs: pd.Series, lows: pd.Series, closes: pd.Series, period=10) -> pd.Series:
-    return pd.Series([0.65] * len(closes.index), index=closes.index)
-
-def calculate_adaptive_rsi_series(closes: pd.Series, period=14) -> pd.Series:
-    return pd.Series([70.0] * len(closes.index), index=closes.index)
-
+# --- Core Orchestration and Other Utility Functions ---
 
 def resample_ohlc_data(daily_df: pd.DataFrame, rule='W-MON') -> pd.DataFrame:
-    if rule == 'M': rule = 'ME'
-    
-    if daily_df.empty: return pd.DataFrame()
+    # ... (This function remains unchanged)
+    if daily_df.empty:
+        logger.warning("resample_ohlc_data: Input daily_df is empty. Returning empty DataFrame.")
+        return pd.DataFrame()
     if not isinstance(daily_df.index, pd.DatetimeIndex):
         logger.error("resample_ohlc_data expects a DataFrame with a DatetimeIndex.")
         return pd.DataFrame()
+    if not daily_df.index.is_monotonic_increasing:
+        logger.warning("resample_ohlc_data: DataFrame index is not monotonically increasing. Sorting.")
+        daily_df = daily_df.sort_index()
         
+    valid_rules = {'W-MON', 'ME'} 
+    if rule not in valid_rules:
+        logger.error(f"resample_ohlc_data: Invalid rule '{rule}'. Using 'W-MON' for weekly, 'ME' for monthly.")
+        if 'M' in rule.upper(): rule = 'ME'
+        else: rule = 'W-MON'
+
     resampled_parts = {}
     if 'open' in daily_df.columns: resampled_parts['open'] = daily_df['open'].resample(rule).first()
     if 'high' in daily_df.columns: resampled_parts['high'] = daily_df['high'].resample(rule).max()
@@ -64,97 +104,55 @@ def resample_ohlc_data(daily_df: pd.DataFrame, rule='W-MON') -> pd.DataFrame:
     if 'close' in daily_df.columns: resampled_parts['close'] = daily_df['close'].resample(rule).last()
     if 'volume' in daily_df.columns: resampled_parts['volume'] = daily_df['volume'].resample(rule).sum()
     
-    if not resampled_parts: return pd.DataFrame() # No valid columns to resample
+    if not resampled_parts:
+        logger.warning("resample_ohlc_data: No valid OHLCV columns to resample (open, high, low, close, volume). Returning empty DataFrame.")
+        return pd.DataFrame()
     
     resampled_df = pd.DataFrame(resampled_parts)
-    return resampled_df.dropna()
+    resampled_df.dropna(subset=['open', 'high', 'low', 'close'], how='all', inplace=True)
+    
+    if resampled_df.empty:
+        logger.warning(f"Resampling with rule '{rule}' resulted in an empty DataFrame. Original daily_df length: {len(daily_df)}")
+    else:
+        index_info = f"Resampled index from {resampled_df.index.min()} to {resampled_df.index.max()}" if not resampled_df.empty else "Empty Index"
+        logger.info(f"Resampled data with rule '{rule}'. Original daily_df len: {len(daily_df)}, Resampled len: {len(resampled_df)}. {index_info}")
+    return resampled_df
 
 
 def calculate_indicators_from_ohlc_df(ohlc_df: pd.DataFrame, timeframe_label: str) -> dict:
-    if ohlc_df.empty or len(ohlc_df) < 15: # Need at least 15 periods for a 14-period RSI
-        logger.warning(f"Not enough data in {timeframe_label} OHLC df ({len(ohlc_df)} rows) for indicators.")
-        return {key: None for key in ['rsi', 'stochRsi', 'mfi', 'crsi', 'williamsR', 'rvi', 'adaptiveRsi']}
+    date_info_str = ohlc_df.index[-1].strftime('%Y-%m-%d') if not ohlc_df.empty and isinstance(ohlc_df.index, pd.DatetimeIndex) else "N/A"
 
-    indicators = {}
+    # Use MIN_CANDLES_FOR_CALCULATION from config
+    if ohlc_df.empty or len(ohlc_df) < config.MIN_CANDLES_FOR_CALCULATION: 
+        logger.warning(f"Not enough data in {timeframe_label} OHLC df ({len(ohlc_df)} rows, need at least {config.MIN_CANDLES_FOR_CALCULATION}) for date ending {date_info_str}. All indicators for this period will be None.")
+        return {key: None for key in config.DEFAULT_INDICATOR_PARAMS.keys()}
+
+    indicators_results = {}
+    df_for_calc = ohlc_df.copy() 
+
+    for col in ['open', 'high', 'low', 'close', 'volume']:
+        if col not in df_for_calc.columns:
+            df_for_calc[col] = np.nan
+        else: 
+            df_for_calc[col] = pd.to_numeric(df_for_calc[col], errors='coerce')
     
-    # Ensure required columns exist, use NaN if not (will result in None for indicator)
-    required_cols = ['open', 'high', 'low', 'close', 'volume']
-    for col in required_cols:
-        if col not in ohlc_df.columns:
-            logger.warning(f"Column '{col}' missing in {timeframe_label} OHLC df. Indicators using it will be None.")
-            ohlc_df[col] = np.nan # Add column with NaNs so functions don't break
+    if 'close' not in df_for_calc.columns or df_for_calc['close'].isnull().all():
+        logger.error(f"Critical: 'close' prices are all NaN or missing in {timeframe_label} OHLC df for {date_info_str} after prep.")
+        return {key: None for key in config.DEFAULT_INDICATOR_PARAMS.keys()}
 
-    rsi_series = calculate_rsi_series(ohlc_df['close'])
-    indicators['rsi'] = rsi_series.iloc[-1] if not rsi_series.empty and pd.notna(rsi_series.iloc[-1]) else None
+    # Call wrapper functions, passing timeframe_label for parameter selection
+    series_dict = {
+        'rsi': calculate_rsi_series(df_for_calc, timeframe_label), 
+        'stochRsi': calculate_stoch_rsi_series(df_for_calc, timeframe_label),
+        'mfi': calculate_mfi_series(df_for_calc, timeframe_label), 
+        'crsi': calculate_crsi_series(df_for_calc, timeframe_label),
+        'williamsR': calculate_williams_r_series(df_for_calc, timeframe_label), 
+        'rvi': calculate_rvi_series(df_for_calc, timeframe_label), 
+        'adaptiveRsi': calculate_adaptive_rsi_series(df_for_calc, timeframe_label)
+    }
     
-    indicators['stochRsi'] = calculate_stoch_rsi_series(ohlc_df['close']).iloc[-1] if not ohlc_df.empty else None
-    indicators['mfi'] = calculate_mfi_series(ohlc_df['high'], ohlc_df['low'], ohlc_df['close'], ohlc_df['volume']).iloc[-1] if not ohlc_df.empty else None
-    indicators['crsi'] = calculate_crsi_series(ohlc_df['close']).iloc[-1] if not ohlc_df.empty else None
-    indicators['williamsR'] = calculate_williams_r_series(ohlc_df['high'], ohlc_df['low'], ohlc_df['close']).iloc[-1] if not ohlc_df.empty else None
-    indicators['rvi'] = calculate_rvi_series(ohlc_df['open'], ohlc_df['high'], ohlc_df['low'], ohlc_df['close']).iloc[-1] if not ohlc_df.empty else None
-    indicators['adaptiveRsi'] = calculate_adaptive_rsi_series(ohlc_df['close']).iloc[-1] if not ohlc_df.empty else None
-    
-    return {k: (v if pd.notna(v) else None) for k, v in indicators.items()}
-
-
-def calculate_composite_metrics_for_api(indicators_dict: dict) -> dict:
-    weights = {"stochRsi": 0.30, "crsi": 0.20, "mfi": 0.20, "rsi": 0.15, "williamsR": 0.10, "rvi": 0.03, "adaptiveRsi": 0.02}
-    thresholds = {"rsi": 70, "stochRsi": 80, "mfi": 70, "crsi": 90, "williamsR": -20, "rvi": 0.7, "adaptiveRsi": 70}
-    cos_monthly, cos_weekly = 0.0, 0.0
-    bsi_monthly, bsi_weekly = 0.0, 0.0
-
-    for key, values in indicators_dict.items():
-        if key not in weights or values.get('monthly') is None or values.get('weekly') is None:
-            continue
-        
-        monthly_val, weekly_val = values['monthly'], values['weekly']
-        threshold_val, weight_val = thresholds[key], weights[key]
-
-        norm_m = (100.0 if monthly_val <= threshold_val else (abs(monthly_val)/abs(threshold_val))*100.0 if abs(threshold_val)>1e-6 else 0.0) if key=='williamsR' else ((monthly_val/threshold_val)*100.0 if abs(threshold_val)>1e-6 else 0.0)
-        cos_monthly += weight_val * norm_m
-        norm_w = (100.0 if weekly_val <= threshold_val else (abs(weekly_val)/abs(threshold_val))*100.0 if abs(threshold_val)>1e-6 else 0.0) if key=='williamsR' else ((weekly_val/threshold_val)*100.0 if abs(threshold_val)>1e-6 else 0.0)
-        cos_weekly += weight_val * norm_w
-
-        neutral_m, neutral_w = (threshold_val*0.5 if key!='williamsR' else -50.0), (threshold_val*0.5 if key!='williamsR' else -50.0)
-        den_m, den_w = (threshold_val-neutral_m if abs(threshold_val-neutral_m)>1e-6 else 1e-6), (threshold_val-neutral_w if abs(threshold_val-neutral_w)>1e-6 else 1e-6)
-        if key == 'williamsR':
-            den_m_wr, den_w_wr = (neutral_m-threshold_val if abs(neutral_m-threshold_val)>1e-6 else 1e-6), (neutral_w-threshold_val if abs(neutral_w-threshold_val)>1e-6 else 1e-6)
-            dist_m, dist_w = min(100.0,max(0.0,(neutral_m-monthly_val)/den_m_wr*100.0)), min(100.0,max(0.0,(neutral_w-weekly_val)/den_w_wr*100.0))
-        else:
-            dist_m, dist_w = min(100.0,max(0.0,(monthly_val-neutral_m)/den_m*100.0)), min(100.0,max(0.0,(weekly_val-neutral_w)/den_w*100.0))
-        bsi_monthly += dist_m * weight_val; bsi_weekly += dist_w * weight_val
+    for key, series_data in series_dict.items():
+        indicators_results[key] = _get_last_value_from_series(series_data)
             
-    return {"cos": {"monthly":min(100.0,max(0.0,cos_monthly)), "weekly":min(100.0,max(0.0,cos_weekly))},
-            "bsi": {"monthly":min(100.0,max(0.0,bsi_monthly)), "weekly":min(100.0,max(0.0,bsi_weekly))}}
-
-def calculate_price_outcomes(base_date_obj_utc: datetime, base_price: float) -> dict:
-    """Calculates price outcomes relative to base_price for 1M, 6M, 12M later."""
-    # base_date_obj_utc should be datetime object (start of day UTC)
-    if base_price is None: 
-        return {p: {'direction':'unknown','percentage':0.0,'price':0.0} for p in ['1M','6M','12M']}
-    
-    outcomes = {}
-    now_utc_start_of_day = datetime.now(timezone.utc).replace(hour=0,minute=0,second=0,microsecond=0)
-
-    for period_label, months_offset in [('1M',1), ('6M',6), ('12M',12)]:
-        # Calculate future date using pandas DateOffset for correct month arithmetic
-        future_date_pd = pd.Timestamp(base_date_obj_utc) + pd.DateOffset(months=months_offset)
-        # Convert back to datetime object, ensuring it's start of day UTC
-        future_date_obj_utc = future_date_pd.to_pydatetime().replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=timezone.utc)
-
-        if future_date_obj_utc > now_utc_start_of_day:
-            outcomes[period_label] = {'direction':'unknown','percentage':0.0,'price':0.0}
-            continue
-        
-        # fetch_and_store_daily_ohlcv expects a datetime object
-        future_price_values, err = fetch_and_store_daily_ohlcv(future_date_obj_utc) 
-        
-        if future_price_values and future_price_values.get('close') is not None:
-            fp = future_price_values['close']
-            direction = 'up' if fp > base_price else ('down' if fp < base_price else 'flat')
-            percentage = abs(((fp - base_price) / base_price) * 100.0) if base_price != 0 else 0.0
-            outcomes[period_label] = {'direction':direction,'percentage':round(percentage,1),'price':round(fp,2)}
-        else:
-            logger.warning(f"Could not fetch price for {period_label} outcome date {future_date_obj_utc.date()}. Error: {err}")
-            outcomes[period_label] = {'direction':'unknown','percentage':0.0,'price':0.0}
-    return outcomes
+    logger.info(f"Calculated indicators for {timeframe_label} ending {date_info_str}: { {k: round(v, 2) if v is not None and pd.notna(v) else None for k, v in indicators_results.items()} }")
+    return {k: (v if pd.notna(v) else None) for k, v in indicators_results.items()}

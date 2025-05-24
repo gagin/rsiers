@@ -2,6 +2,57 @@
 
 All notable changes to the Bitcoin Dashboard project will be documented in this file.
 
+## [0.3.0] - 2024-05-23 
+
+### Added
+- **Configuration File (`backend/config.py`):** Centralized configuration for indicator parameters, composite metric weights/thresholds/neutral points, API client settings, and other application settings.
+- **Modular Indicator Calculations (`backend/indicators/`):**
+    - Each of the seven technical indicators (RSI, StochRSI, MFI, CRSI, Williams %R, RVI, AdaptiveRSI) now has its calculation logic encapsulated in its own Python module within the `backend/indicators/` directory.
+    - Implementations are now manual using Pandas/NumPy, removing external TA library dependencies (like `stock-indicators` or `pandas-ta`'s direct use).
+- **Dedicated Service Layer (`backend/services/`):**
+    - `indicator_service.py`: Orchestrates fetching/calculating full indicator sets for API responses.
+    - `composite_metrics_service.py`: Handles calculation of COS and BSI, now using parameters from `config.py`.
+    - `outcome_service.py`: Handles calculation of future price outcomes.
+- **Docker Entrypoint Script (`docker-entrypoint.sh`):**
+    - Automates database schema initialization and data seeding (CSVs, manual filler scripts) on first container run with an empty volume.
+    - Uses a marker file (`.db_seeded_marker`) to prevent re-seeding on subsequent starts.
+- **Calculation Verification Script (`tests/modular/test_indicator_calc.py`):**
+    - Script to test the main indicator calculation pathway (`calculate_indicators_from_ohlc_df`) for weekly and monthly timeframes using sample data.
+- **Makefile Target `import-all-sources`:** New make target to initialize the DB and run all primary data import scripts (CSVs, manual fillers).
+
+### Changed
+- **Refactored `backend/indicator_calculator.py`:**
+    - Now acts as an orchestrator, importing individual indicator modules from `backend/indicators/`.
+    - Wrapper functions call the respective indicator modules, fetching parameters from `config.py` based on timeframe.
+    - Dynamically adjusts parameters (e.g., CRSI `rank_len`, StochRSI periods, AdaptiveRSI KAMA periods) for monthly vs. weekly calculations to better suit available data length (typically 2 years of daily history).
+    - `calculate_composite_metrics_for_api` and `calculate_price_outcomes` moved to their respective service files.
+- **Refactored `backend/main.py`:**
+    - Slimmed down API endpoint logic, delegating core work to services in `backend/services/`.
+    - `/api/historical_time_points` endpoint now uses `composite_metrics_service.calculate_composite_metrics` to ensure consistency and remove legacy 'tsi' handling.
+- **Composite Metrics Calculation (`composite_metrics_service.py`):**
+    - Unified normalization logic for all indicators contributing to COS, ensuring they are scaled appropriately relative to their neutral points and thresholds before weighting.
+    - Williams %R is now correctly normalized for COS.
+- **Docker Configuration:**
+    - `Dockerfile`: Updated `CMD` to `["python", "backend/main.py"]`. Added `ENTRYPOINT` to use `docker-entrypoint.sh`. Removed `make` dependency from the image, as entrypoint now calls Python scripts directly.
+    - `docker-compose.yml`: Updated backend service `command` to `python backend/main.py`. Database volume path corrected to `/app`. Healthcheck and startup parameters refined.
+- **`Makefile`:**
+    - Added `manual-fill-main` and `manual-fill-specific` targets.
+    - Updated `load-gaps` target for better command execution.
+- **Logging:** Improved logging across various modules for better diagnostics, including pandas version checks and intermediate calculation steps for debugging.
+- **Indicator Implementations:** All indicators are now manually implemented, providing full control and transparency, and removing previous external library issues.
+
+### Fixed
+- Resolved `TypeError: NDFrame.fillna() got an unexpected keyword argument 'where'` in MFI calculation by using a universally compatible `.loc` based conditional fill. (Though this was a symptom of a suspected environment issue with pandas versions, the fix is robust).
+- Corrected various `ImportError` issues related to module refactoring and script execution paths.
+    - Fixed `ImportError` for `resample_ohlc_data` in `scripts/generate_historical_json.py`.
+    - Fixed `SyntaxError: invalid syntax` in `api_clients.py` related to an alias.
+- Addressed `TypeError: calculate_stoch_rsi_series() got an unexpected keyword argument 'rsi_length'` by aligning wrapper function signatures and calls in `indicator_calculator.py` and test scripts.
+- Resolved issue where monthly StochRSI, CRSI, and AdaptiveRSI were consistently `null` by:
+    - Adjusting `MIN_CANDLES_FOR_CALCULATION`.
+    - Implementing timeframe-specific (shorter) parameters for these indicators when calculating on monthly data.
+    - Refining data length checks within individual indicator calculation modules.
+- Ensured `IndicatorTable.js` on the frontend is more robust against `null` or non-numeric indicator values to prevent `.toFixed()` errors, especially when exiting Time Machine mode.
+
 ## [0.2.2] - 2024-05-23
 
 ### Changed

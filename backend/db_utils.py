@@ -20,6 +20,9 @@ def iso_string_to_date(date_str: str) -> DtDate:
 
 def init_db():
     """Initializes the database and ensures the schema is up-to-date."""
+    # Log the DB_PATH being used by this function
+    logger.info(f"DB_UTILS: init_db() called. Using DB_PATH: {os.path.abspath(DB_PATH)}")
+    
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
 
@@ -72,7 +75,8 @@ def init_db():
 
     conn.commit()
     conn.close()
-    logger.info(f"Database {DB_PATH} initialized/verified.")
+    # No need to log DB_PATH again here, already logged at the start of function
+    # logger.info(f"Database {DB_PATH} initialized/verified.")
 
 # --- store_daily_ohlcv_data ---
 def store_daily_ohlcv_data(date_obj_utc: datetime, data_values: dict):
