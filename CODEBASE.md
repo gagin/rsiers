@@ -1,110 +1,94 @@
-# Bitcoin Indicator Dashboard Codebase Documentation (v0.2.2 - Refactored Backend)
 
-This document provides an overview of the files in the Bitcoin Indicator Dashboard project, explaining their purpose and relationships after backend refactoring.
-
-## Core Application Files
+## File Descriptions
 
 ### Backend (`backend/` directory)
 
-- **`main.py`**: The main Flask application.
-  - Initializes the database via `db_utils`.
-  - Defines API endpoints (`/api/indicators`, `/api/historical_time_points`).
-  - Orchestrates data fetching (via `data_fetch_orchestrator`) and indicator calculation (via `indicator_calculator`) for API responses.
-- **`db_utils.py`**: Handles all SQLite database interactions.
-  - Defines database path (`bitcoin_daily_data.db`).
-  - Initializes database schema (tables `daily_ohlcv`, `calculated_indicators`) using 'YYYY-MM-DD' text strings for date keys.
-  - Provides functions to store and retrieve daily OHLCV data and full calculated indicator sets.
-- **`csv_data_loader.py`**: Contains the `CSVDataLoader` class.
-  - Responsible for loading and parsing all `.csv` files from the `csv/` directory.
-  - Provides a method (`get_ohlcv_for_date`) to query OHLCV data for a specific date from the loaded CSV data.
-- **`api_clients.py`**: Contains classes for interacting with external APIs.
-  - `CoinGeckoAPI`: Fetches historical daily price/volume data from CoinGecko.
-  - `KrakenAPI`: Fetches historical daily OHLCV data from Kraken.
-  - Exports instantiated clients for use.
-- **`data_fetch_orchestrator.py`**: Manages the logic of sourcing daily OHLCV data.
-  - `fetch_and_store_daily_ohlcv`: Tries to get data for a date by checking DB, then local CSVs, then CoinGecko (for recent), then Kraken. Stores fetched data in DB.
-  - `get_historical_data_for_indicators`: Assembles a historical range (e.g., 2 years) of daily OHLCV data needed for indicator calculations, using `fetch_and_store_daily_ohlcv` to fill any gaps.
-- **`indicator_calculator.py`**: Contains all logic for technical analysis.
-  - Functions to calculate individual indicators (RSI, StochRSI stubs, etc.) from Pandas DataFrames.
-  - `resample_ohlc_data`: Converts daily data to weekly/monthly.
-  - `calculate_composite_metrics_for_api`: Computes COS and BSI.
-  - `calculate_price_outcomes`: Determines future price movements.
-- **`__init__.py`**: Makes the `backend` directory a Python package.
+-   **`config.py`**: New. Central configuration file for parameters related to indicators (periods, smoothing), composite metrics (weights, thresholds, neutral points), API client settings (URLs, retry logic), and other application-level settings.
+-   **`main.py`**: The main Flask application.
+    -   Initializes the database via `db_utils.py`.
+    -   Defines API endpoints: `/api/indicators`, `/api/historical_time_points`, `/api/refresh`.
+    -   Delegates core logic for `/api/indicators` to `services/indicator_service.py`.
+    -   Uses `services/composite_metrics_service.py` for processing `historical_data.json`.
+-   **`db_utils.py`**: Handles all SQLite database interactions (`bitcoin_daily_data.db`).
+    -   Defines database schema (tables `daily_ohlcv`, `calculated_indicators`).
+    -   Provides functions to store/retrieve daily OHLCV and calculated indicator sets.
+-   **`csv_data_loader.py`**: Contains `CSVDataLoader` class for loading and querying data from `./csv/` files.
+-   **`api_clients.py`**: Contains `CoinGeckoAPI` and `KrakenAPI` classes for external data fetching. Uses URLs and retry parameters from `config.py`.
+-   **`data_sources.py`**: Orchestrates fetching daily OHLCV data.
+    -   `fetch_and_store_daily_ohlcv`: Prioritizes DB, then global CSV instance, then APIs.
+    -   `get_historical_data_for_indicators`: Assembles historical daily OHLCV for indicator input, uses `config.HISTORICAL_DATA_YEARS`.
+-   **`indicator_calculator.py`**: Orchestrates the calculation of technical indicators.
+    -   Imports individual calculation modules from `backend/indicators/`.
+    -   Contains wrapper functions (e.g., `calculate_rsi_series`) that fetch parameters from `config.py` (via `config.get_indicator_params`) and call the respective specialized indicator module.
+    -   Includes `resample_ohlc_data` to convert daily data to weekly/monthly.
+    -   `calculate_indicators_from_ohlc_df`: Main function called by services to get a dictionary of all indicator values for a given resampled OHLCV DataFrame and timeframe.
+-   **`indicators/` (sub-package)**: New. Contains individual Python modules for each of the seven technical indicators.
+    -   Each module (e.g., `rsi.py`, `mfi.py`) has a `calculate()` function that performs the manual calculation for that specific indicator using Pandas/NumPy.
+-   **`services/` (sub-package)**: New. Contains modules for higher-level service logic.
+    -   `indicator_service.py`: Encapsulates the full workflow for the `/api/indicators` endpoint (caching, data fetching orchestration, indicator calculation orchestration, composite metrics, outcomes, DB storage).
+    -   `composite_metrics_service.py`: Contains `calculate_composite_metrics` for COS and BSI, using parameters from `config.py`.
+    -   `outcome_service.py`: Contains `calculate_price_outcomes` for 1M, 6M, 12M price changes.
 
-### Frontend
+### Frontend (`index.html` and `components/` directory)
 
-- **`index.html`**: Single-page React application.
-  - Displays the dashboard UI.
-  - Fetches data from the backend API endpoints.
-  - Visualizes indicators and metrics.
-  - Provides the Time Machine feature with calendar control.
+-   **`index.html`**: Single-page React application entry point. Loads React, ReactDOM, Axios, Tailwind CSS from CDNs, and Babel for in-browser JSX transpilation. Includes script tags to load individual React component files.
+-   **`components/`**: New directory containing JavaScript files for individual React components (e.g., `App.js`, `Header.js`, `IndicatorTable.js`, `TimeMachine.js`, `Footer.js`, etc.), making the frontend code modular.
 
-### Data Files (Primary Sources & Configuration)
+### Data Files & Configuration
 
-- **`csv/` (directory)**: Contains user-provided CSV files with historical OHLCV data (e.g., `XBTUSD_1440.csv`). This is the primary source for bulk historical data.
-- **`historical_data.json`**: JSON file defining significant historical market events (peaks, bottoms) used by the Time Machine feature. Includes pre-calculated indicators for these specific points.
-- **`bitcoin_daily_data.db`**: SQLite database file (created/managed by the backend).
-  - `daily_ohlcv` table: Stores daily open, high, low, close, volume data, keyed by 'YYYY-MM-DD' date strings. Populated by `csv_importer.py` and `api-loader.py`.
-  - `calculated_indicators` table: Stores full sets of calculated weekly/monthly indicators, COS, BSI, price, and outcomes for specific dates, keyed by 'YYYY-MM-DD' date strings. Acts as a cache.
+-   **`csv/`**: Directory for user-provided CSV files with historical OHLCV data. Primary source for bulk history.
+-   **`historical_data.json`**: Defines significant historical market events for the Time Machine. Values here can be generated/updated by `scripts/generate_historical_json.py`.
+-   **`bitcoin_daily_data.db`**: SQLite database (created at runtime, persisted in Docker via a named volume). Stores daily OHLCV and cached calculated indicator sets.
 
-## Utility Scripts (`scripts/` directory)
+### Utility Scripts (`scripts/` directory)
 
-- **`csv_importer.py`**: Reads all CSV files from the `csv/` directory and populates the `daily_ohlcv` table in the database. Normalizes timestamps to start-of-day UTC and stores dates as 'YYYY-MM-DD'.
-- **`api-loader.py`**: Fetches missing daily OHLCV data for a specified date range using the logic in `backend/data_fetch_orchestrator.py` (tries DB, CSV, CoinGecko, Kraken) and stores it.
-- **`db_checker.py`**: Analyzes the `daily_ohlcv` table for date continuity, reports gaps, and can optionally generate `api-loader.py` commands to fill them.
-- **`manual_data_filler.py`** (formerly `fill-in-20240331.py`): Allows manual insertion/update of OHLCV data for specific dates by editing the script's data list.
+-   **`csv_importer.py`**: Imports data from all CSVs in `./csv/` into the `daily_ohlcv` table.
+-   **`manual_data_filler.py` & `fill-in-20240331.py`**: Allow manual insertion/update of OHLCV data for specific dates.
+-   **`api-loader.py`**: Fetches missing daily OHLCV data for a specified date range using the backend's data sourcing logic.
+-   **`db_checker.py`**: Analyzes `daily_ohlcv` table for gaps and can suggest `api-loader.py` commands.
+-   **`generate_historical_json.py`**: New. Script to programmatically generate/update `historical_data.json` by calculating all indicators, composites, and outcomes for predefined historical event dates using the application's current logic.
 
-## Setup and Installation
+### Testing (`tests/modular/` directory)
 
-- **`requirements.txt`**: Lists Python package dependencies (Flask, requests, pandas, numpy, etc.).
-- **`setup.py`**: Legacy script for VENV setup; less relevant with current modular structure and `requirements.txt`.
-- **`Makefile`**: Contains convenience commands for common tasks like installation, running servers, database operations, and Docker commands.
+-   **`test_indicator_calc.py`**: New. A script for functional testing of the main indicator calculation pathway (`calculate_indicators_from_ohlc_df`), using sample data for weekly and monthly timeframes.
 
-## Docker Support
-- **`Dockerfile`**: Defines the Docker image for the backend application (runs `backend/main.py`).
-- **`docker-compose.yml`**: Orchestrates the backend and frontend services for easy deployment.
-- **`.dockerignore`**: Specifies files to exclude from the Docker build.
-- **`docker-start.sh`**: User-friendly script to build and run the application using Docker Compose.
+### Setup, Build, and Deployment
 
-## Documentation
-- **`PRD.txt`**: Product Requirements Document.
-- **`README.md`**: Project overview, setup, and usage instructions.
-- **`CODEBASE.md`**: This document.
-- **`CHANGELOG.md`**: Tracks notable changes to the project.
-- **`btc-rsis.png`**: Application screenshot.
+-   **`requirements.txt`**: Lists Python package dependencies.
+-   **`Makefile`**: Contains convenience commands for local development (installation, running servers, database operations, data imports, Docker commands). Includes new `import-all-sources` target.
+-   **`Dockerfile`**: Defines the Docker image for the backend application. Now uses `docker-entrypoint.sh`.
+-   **`docker-compose.yml`**: Orchestrates backend and frontend services. Database data is persisted in a named volume (`bitcoin_db_data`).
+-   **`docker-entrypoint.sh`**: New. Script executed when the Docker container starts. Handles database schema initialization and automatic data seeding (CSVs, manual fillers) on first run with an empty volume, using a marker file to prevent re-seeding.
+-   **`docker-start.sh`**: Host script to build and run the application using Docker Compose.
 
-## Data Flow for `/api/indicators?date=YYYY-MM-DD`
-1.  `backend/main.py` receives request, normalizes date to `target_date_obj_utc`.
-2.  Checks `calculated_indicators` table for `target_date_obj_utc` via `get_full_indicator_set_from_db`.
-    - If recent cache hit (for today) or exact match (for historical), returns cached data.
-3.  If no/stale cache:
-    a.  `get_historical_data_for_indicators` (in `data_fetch_orchestrator.py`) is called for a 2-year window ending at `target_date_obj_utc`.
-        i.  This function iterates daily: checks DB (`get_daily_ohlcv_from_db`), if miss, calls `fetch_and_store_daily_ohlcv`.
-        ii. `fetch_and_store_daily_ohlcv`:
-            1. Checks CSV (`CSVDataLoader` instance).
-            2. If miss & recent, checks CoinGecko (`CoinGeckoAPI` instance).
-            3. If miss or old, checks Kraken (`KrakenAPI` instance).
-            4. Stores any newly fetched daily data into `daily_ohlcv` table via `store_daily_ohlcv_data`.
-        iii. Returns a Pandas DataFrame of daily OHLCV data for the 2-year window.
-    b.  `backend/main.py` uses this DataFrame to:
-        i.  Determine `price_at_event` (last close price).
-        ii. Resample to weekly/monthly (`resample_ohlc_data` in `indicator_calculator.py`).
-        iii.Calculate indicators for W/M (`calculate_indicators_from_ohlc_df`).
-        iv. Calculate COS/BSI (`calculate_composite_metrics_for_api`).
-        v.  Calculate price outcomes (`calculate_price_outcomes`).
-    c.  Stores the complete set into `calculated_indicators` table via `store_full_indicator_set`.
-    d.  Returns the newly calculated set as JSON.
+### Documentation
+-   **`PRD.txt`**: Product Requirements Document.
+-   **`README.md`**: Project overview, setup, and usage instructions (updated for v0.3.0).
+-   **`CODEBASE.md`**: This document (updated for v0.3.0).
+-   **`CHANGELOG.md`**: Tracks notable changes (updated for v0.3.0).
 
-## Development Workflow (Refactored)
+## Data Flow for `/api/indicators?date=YYYY-MM-DD` (v0.3.0)
 
-### Docker Setup (Recommended)
-1.  Install Docker and Docker Compose.
-2.  Run `./docker-start.sh`. Access frontend: `http://localhost:8000`.
+1.  `backend/main.py` (`get_indicators_api` route) receives request.
+2.  Calls `get_indicator_data(target_date_obj_utc)` in `backend/services/indicator_service.py`.
+3.  **`indicator_service.py` (`get_indicator_data`):**
+    a.  Checks `calculated_indicators` DB table for cached data. If fresh cache hit, formats and returns.
+    b.  If no/stale cache:
+        i.  Calls `get_historical_data_for_indicators` (in `backend/data_sources.py`) for a N-year window (from `config.py`) of daily OHLCV data. This involves:
+            1.  Checking DB (`get_daily_ohlcv_from_db`).
+            2.  If miss, checking global CSV instance (`CSVDataLoader`).
+            3.  If miss, trying CoinGecko/Kraken APIs (`api_clients.py`).
+            4.  Storing any newly fetched daily data into `daily_ohlcv` DB table.
+            5.  Returns a Pandas DataFrame of daily OHLCV.
+        ii. Determines `price_at_event` (usually last close from the daily DataFrame or fetched for the target date).
+        iii.Calls `resample_ohlc_data` (in `backend/indicator_calculator.py`) to get weekly and monthly OHLCV DataFrames.
+        iv. Calls `calculate_indicators_from_ohlc_df` (in `backend/indicator_calculator.py`) for both weekly and monthly DataFrames. This function:
+            1.  Fetches parameters from `backend/config.py` based on `timeframe_label`.
+            2.  Calls wrapper functions (e.g., `calculate_rsi_series`) which in turn call the `calculate()` methods in the respective `backend/indicators/*.py` modules.
+        v.  Calls `calculate_composite_metrics` (from `backend/services/composite_metrics_service.py`).
+        vi. Calls `calculate_price_outcomes` (from `backend/services/outcome_service.py`).
+    c.  Stores the complete new set (price, indicators, composites, outcomes) into `calculated_indicators` DB table via `store_full_indicator_set`.
+    d.  Formats and returns the data.
+4.  `backend/main.py` receives the dictionary from the service and returns it as a JSON response.
 
-### Local Setup
-1.  Delete `bitcoin_daily_data.db` (if migrating from old schema or for a clean start).
-2.  Run `make install` (or `python3 -m pip install -r requirements.txt`).
-3.  Run `make init-db` (or `python3 -c "from backend.db_utils import init_db; init_db()"`).
-4.  Run `make import-csv` (or `python3 scripts/csv_importer.py`) to load base historical data.
-5.  Run `make check-db` to identify gaps. Use suggested commands with `python3 scripts/api-loader.py` to fill them if desired.
-6.  Run `make run` to start backend and frontend. Access frontend: `http://localhost:8000`.
+This structure provides a clear separation of concerns and a more maintainable and configurable backend.
