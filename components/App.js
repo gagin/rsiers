@@ -22,77 +22,6 @@ function App() {
 
   const datePickerRef = useRef(null); // Ref for Flatpickr input element
 
-  // Calculate composite metrics - Fallback if backend doesn't provide them
-  // This function is also used by fetchTimeMachineDataInternal to ensure historical points have metrics
-  const calculateCompositeMetrics = (indicatorsData) => {
-    if (!indicatorsData || Object.keys(indicatorsData).length === 0) {
-        return { cos: { monthly: 0, weekly: 0 }, bsi: { monthly: 0, weekly: 0 } };
-    }
-    // Weights for Composite Overbought Score
-    const weights = {stochRsi:0.30,crsi:0.20,mfi:0.20,rsi:0.15,williamsR:0.10,rvi:0.03,adaptiveRsi:0.02};
-    // Overbought thresholds
-    const thresholds = {rsi:70,stochRsi:80,mfi:70,crsi:90,williamsR:-20,rvi:0.7,adaptiveRsi:70};
-    
-    let monthlyCOS = 0, weeklyCOS = 0, monthlyBSI = 0, weeklyBSI = 0;
-
-    Object.keys(indicatorsData).forEach(key => {
-      if (!weights[key] || !thresholds[key] || !indicatorsData[key] || 
-          typeof indicatorsData[key].monthly !== 'number' || typeof indicatorsData[key].weekly !== 'number') {
-        // Skip if indicator data is missing, not a number, or not in weights/thresholds
-        return;
-      }
-      
-      const monthlyVal = indicatorsData[key].monthly;
-      const weeklyVal = indicatorsData[key].weekly;
-      const thresholdVal = thresholds[key];
-      const weightVal = weights[key];
-
-      // COS calculation: Normalize and weight
-      // For Williams %R, lower values (e.g., -5) are more overbought than higher (e.g., -50)
-      // So, if value <= threshold, it's 100% overbought contribution for Williams %R.
-      // Otherwise, scale based on how far it is from 0 relative to threshold.
-      let normM_cos = (key === 'williamsR') 
-                      ? (monthlyVal <= thresholdVal ? 100 : (Math.abs(monthlyVal) / Math.abs(thresholdVal)) * 100) 
-                      : (monthlyVal / thresholdVal) * 100;
-      monthlyCOS += weightVal * Math.min(150, Math.max(-50, normM_cos)); // Cap normalized values
-      
-      let normW_cos = (key === 'williamsR') 
-                      ? (weeklyVal <= thresholdVal ? 100 : (Math.abs(weeklyVal) / Math.abs(thresholdVal)) * 100) 
-                      : (weeklyVal / thresholdVal) * 100;
-      weeklyCOS += weightVal * Math.min(150, Math.max(-50, normW_cos));
-
-
-      // BSI calculation: Measures distance from a neutral point towards overbought
-      // Neutral for Williams %R is -50. For others, 50% of threshold.
-      const neutralM = (key === 'williamsR' ? -50.0 : thresholdVal * 0.5);
-      const neutralW = (key === 'williamsR' ? -50.0 : thresholdVal * 0.5);
-      
-      // Denominator: distance from neutral to threshold
-      // For Williams %R, threshold (-20) is 'higher' (less negative) than neutral (-50)
-      const denM = (key === 'williamsR' ? (neutralM - thresholdVal) : (thresholdVal - neutralM));
-      const denW = (key === 'williamsR' ? (neutralW - thresholdVal) : (thresholdVal - neutralW));
-
-      let distM = 0;
-      if (Math.abs(denM) > 1e-6) { // Avoid division by zero
-        // Numerator: distance from value to neutral
-        // For Williams %R, movement from neutral (-50) towards threshold (-20) is bullish strength
-        distM = (key === 'williamsR') ? (neutralM - monthlyVal) / denM * 100 : (monthlyVal - neutralM) / denM * 100;
-      }
-      monthlyBSI += Math.min(100, Math.max(0, distM)) * weightVal; // Scale to 0-100 and weight
-      
-      let distW = 0;
-      if (Math.abs(denW) > 1e-6) {
-        distW = (key === 'williamsR') ? (neutralW - weeklyVal) / denW * 100 : (weeklyVal - neutralW) / denW * 100;
-      }
-      weeklyBSI += Math.min(100, Math.max(0, distW)) * weightVal;
-    });
-
-    return {
-      cos: { monthly: Math.min(100,Math.max(0,monthlyCOS)), weekly: Math.min(100,Math.max(0,weeklyCOS)) },
-      bsi: { monthly: Math.min(100,Math.max(0,monthlyBSI)), weekly: Math.min(100,Math.max(0,weeklyBSI)) }
-    };
-  };
-
   const fetchTimeMachineDataInternal = async () => {
     const backendUrl = window.getBackendUrl('api/historical_time_points');
     console.log(`Fetching historical time points from: ${backendUrl}`);
@@ -101,8 +30,8 @@ function App() {
       // Backend already processes historical_data.json to ensure BSI and calculate compositeMetrics
       const data = response.data.timePoints.map(point => ({
           ...point,
-          // Ensure compositeMetrics are calculated if missing from backend's processing (should not happen ideally)
-          compositeMetrics: point.compositeMetrics || calculateCompositeMetrics(point.indicators)
+          // Ensure compositeMetrics are provided from backend's processing
+          compositeMetrics: point.compositeMetrics
       }));
       setTimeMachineData(data);
       console.log('Time machine data loaded successfully from backend and processed.');
@@ -111,9 +40,9 @@ function App() {
       console.error('Failed to load time machine data from backend:', err);
       // Fallback data structure (simplified for brevity, ensure it matches your actual fallback needs)
       const fallbackData = [
-        { id: 1, date: "2021-04-14", name: "Fallback Peak 1", price: 64895.00, description: "Fallback data", outcomes: {"1M":{}, "6M":{}, "12M":{}}, indicators: {rsi:{monthly:80,weekly:80}}, compositeMetrics: {cos:{monthly:80,weekly:80}, bsi:{monthly:80,weekly:80}}},
-        { id: 2, date: "2021-11-10", name: "Fallback Peak 2", price: 69000.00, description: "Fallback data", outcomes: {"1M":{}, "6M":{}, "12M":{}}, indicators: {rsi:{monthly:85,weekly:85}}, compositeMetrics: {cos:{monthly:85,weekly:85}, bsi:{monthly:85,weekly:85}}},
-      ].map(point => ({ ...point, compositeMetrics: calculateCompositeMetrics(point.indicators) })); // Ensure fallback also has metrics
+        { id: 1, date: "2021-04-14", name: "Fallback Peak 1", price: 64895.00, description: "Fallback data", outcomes: {"1M":{}, "6M":{}, "12M":{}}, indicators: {rsi:{monthly:80,weekly:80}}, compositeMetrics: {cos:{monthly:0,weekly:0}, bsi:{monthly:0,weekly:0}}},
+        { id: 2, date: "2021-11-10", name: "Fallback Peak 2", price: 69000.00, description: "Fallback data", outcomes: {"1M":{}, "6M":{}, "12M":{}}, indicators: {rsi:{monthly:85,weekly:85}}, compositeMetrics: {cos:{monthly:0,weekly:0}, bsi:{monthly:0,weekly:0}}},
+      ]; // Fallback data now includes predefined compositeMetrics
       setTimeMachineData(fallbackData);
       console.log('Using fallback historical data.');
       return fallbackData;
@@ -127,8 +56,8 @@ function App() {
     setSelectedDate(new Date(timePoint.date)); // For calendar consistency
     
     setIndicators(timePoint.indicators || {}); // Ensure indicators is an object
-    // Ensure compositeMetrics are always calculated or taken from the point
-    setCompositeMetrics(timePoint.compositeMetrics || calculateCompositeMetrics(timePoint.indicators));
+    // Ensure compositeMetrics are taken from the point
+    setCompositeMetrics(timePoint.compositeMetrics);
     
     setLastUpdate(new Date(timePoint.date));
     setDataSource('timeMachine');
@@ -150,8 +79,8 @@ function App() {
       const data = response.data;
 
       setIndicators(data.indicators);
-      // Backend should always provide compositeMetrics. Fallback is here just in case.
-      setCompositeMetrics(data.compositeMetrics || calculateCompositeMetrics(data.indicators));
+      // Backend should always provide compositeMetrics.
+      setCompositeMetrics(data.compositeMetrics);
       setLastUpdate(data.lastUpdate ? new Date(data.lastUpdate) : new Date());
       setDataSource('kraken');
       if(data.error_message) { 
@@ -183,7 +112,7 @@ function App() {
         console.log('No historical data available. Falling back to mock data...');
         const mockInd = { rsi: { monthly: 68, weekly: 72 }, stochRsi: { monthly: 75, weekly: 82 }, mfi: { monthly: 65, weekly: 78 }, crsi: { monthly: 82, weekly: 88 }, williamsR: { monthly: -25, weekly: -18 }, rvi: { monthly: 0.65, weekly: 0.72 }, adaptiveRsi: { monthly: 70, weekly: 75 }};
         setIndicators(mockInd);
-        setCompositeMetrics(calculateCompositeMetrics(mockInd));
+        setCompositeMetrics({ cos: { monthly: 0, weekly: 0 }, bsi: { monthly: 0, weekly: 0 } });
         setLastUpdate(new Date());
         setDataSource('mock');
         setError('Backend server and historical data unavailable. Displaying mock data.');
@@ -247,7 +176,7 @@ function App() {
               date: dateString,
               name: `Error for ${date.toLocaleDateString()}`,
               description: data.error || `Failed to fetch complete data for this date.`,
-              price: null, indicators: {}, compositeMetrics: calculateCompositeMetrics(null), outcomes: {}, isCustomDate: true
+              price: null, indicators: {}, compositeMetrics: { cos: { monthly: 0, weekly: 0 }, bsi: { monthly: 0, weekly: 0 } }, outcomes: {}, isCustomDate: true
           };
           activateTimeMachine(errorPoint); // Use activateTimeMachine to set TM state correctly with error info
       } else {
@@ -258,7 +187,7 @@ function App() {
             price: data.price,
             description: data.description || "Custom date selected by user - data from Backend API",
             indicators: data.indicators || {}, // Ensure indicators is an object
-            compositeMetrics: data.compositeMetrics || calculateCompositeMetrics(data.indicators),
+            compositeMetrics: data.compositeMetrics,
             outcomes: data.outcomes || {}, // Ensure outcomes is an object
             isCustomDate: true
         };
@@ -280,7 +209,7 @@ function App() {
           date: date.toISOString(),
           name: `Error for ${date.toLocaleDateString()}`,
           description: errorMessage,
-          price: null, indicators: {}, compositeMetrics: calculateCompositeMetrics(null), outcomes: {}, isCustomDate: true
+          price: null, indicators: {}, compositeMetrics: { cos: { monthly: 0, weekly: 0 }, bsi: { monthly: 0, weekly: 0 } }, outcomes: {}, isCustomDate: true
       };
       activateTimeMachine(errorPoint); // Use activateTimeMachine to manage TM state
     } finally {
