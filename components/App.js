@@ -75,7 +75,7 @@ function App() {
     console.log('[activateTimeMachine] Setting dataSource:', dataSourceToSet);
     setDataSource(dataSourceToSet);
     setCurrentDataDetails(null); // Clear current data details when TM is active
-    
+
     setSelectedTimePoint(timePoint);
     setTimeMachineActive(true);
     setSelectedDate(new Date(timePoint.date)); // For calendar consistency
@@ -110,7 +110,7 @@ function App() {
         lastUpdate: data.lastUpdate
       });
       if(data.error_message) { 
-        setError(data.error_message); 
+        setError(data.error_message);
       }
       console.log('[fetchData] Successfully fetched data from API');
     } catch (apiError) { 
@@ -146,7 +146,7 @@ function App() {
             price: 'N/A',
             name: 'Mock Data Active',
             description: 'Displaying mock data due to backend unavailability.',
-            outcomes: {}, 
+            outcomes: {},
             lastUpdate: new Date().toISOString()
         });
         setError('Backend server and historical data unavailable. Displaying mock data.');
@@ -198,7 +198,7 @@ function App() {
     }
     setLoading(true);
     setError(null);
-    setSelectedDate(date); 
+    setSelectedDate(date);
     setCurrentDataDetails(null); // Clear current data details when fetching for a specific date
 
     try {
@@ -209,7 +209,7 @@ function App() {
       console.log('[fetchDataForDate] Response from axios.get:', response);
       const data = response.data;
 
-      if (data.error && !data.price && !data.indicators) { 
+      if (data.error && !data.price && !data.indicators) {
           const errorMsg = data.error || `No data could be retrieved for ${date.toLocaleDateString()}`;
           setError(errorMsg);
           setIndicators(null); 
@@ -221,26 +221,26 @@ function App() {
               price: null, indicators: {}, compositeMetrics: { cos: { monthly: 0, weekly: 0 }, bsi: { monthly: 0, weekly: 0 } }, outcomes: {}, isCustomDate: true
           };
           console.log('[fetchDataForDate] Creating errorPoint:', errorPoint);
-          activateTimeMachine(errorPoint); 
+          activateTimeMachine(errorPoint);
       } else {
         const customPoint = {
             date: data.lastUpdate || dateString, 
             name: data.name || `Custom Date: ${date.toLocaleDateString()}`,
             price: data.price,
             description: data.description || "Custom date selected by user - data from Backend API",
-            indicators: data.indicators || {}, 
+            indicators: data.indicators || {},
             compositeMetrics: data.compositeMetrics,
-            outcomes: data.outcomes || {}, 
+            outcomes: data.outcomes || {},
             isCustomDate: true
         };
         console.log('[fetchDataForDate] Creating customPoint:', customPoint);
         activateTimeMachine(customPoint); 
-        if(data.error_message) { 
+        if(data.error_message) {
             setError(data.error_message);
         }
       }
       console.log(`[fetchDataForDate] Successfully processed data request for date: ${dateString}`);
-    } catch (apiErrorCatch) { 
+    } catch (apiErrorCatch) {
       console.error('[fetchDataForDate] Hard API Error in fetchDataForDate:', apiErrorCatch);
       const errorMessage = (apiErrorCatch.response && apiErrorCatch.response.data && apiErrorCatch.response.data.error)
                            || apiErrorCatch.message
@@ -255,11 +255,11 @@ function App() {
           price: null, indicators: {}, compositeMetrics: { cos: { monthly: 0, weekly: 0 }, bsi: { monthly: 0, weekly: 0 } }, outcomes: {}, isCustomDate: true
       };
       console.log('[fetchDataForDate] Creating errorPoint from catch block:', errorPoint);
-      activateTimeMachine(errorPoint); 
+      activateTimeMachine(errorPoint);
     } finally {
-      if (!timeMachineActive && !loading) { 
+      if (!timeMachineActive && !loading) {
           setLoading(false);
-      } else if (timeMachineActive && loading) { 
+      } else if (timeMachineActive && loading) {
           setLoading(false);
       }
     }
@@ -272,11 +272,11 @@ function App() {
       if (isMounted) setLoading(true); 
       
       console.log('[useEffect] Calling fetchTimeMachineDataInternal...');
-      await fetchTimeMachineDataInternal(); 
+      await fetchTimeMachineDataInternal();
       
       if (isMounted && !timeMachineActive) { 
         console.log('[useEffect] Calling fetchData...');
-        await fetchData(); 
+        await fetchData();
       } else if (isMounted && timeMachineActive) {
         console.log('[useEffect] Time machine is active, not calling fetchData. Ensuring loading is false.');
         if (isMounted) setLoading(false);
@@ -288,9 +288,9 @@ function App() {
     const interval = setInterval(() => {
       if (isMounted && !timeMachineActive) {
         console.log("[useEffect] Interval: Fetching data");
-        fetchData(); 
+        fetchData();
       }
-    }, 5 * 60 * 1000); 
+    }, 5 * 60 * 1000);
 
     return () => {
       isMounted = false;
@@ -317,10 +317,11 @@ function App() {
         onActivateTimeMachine={activateTimeMachine} // Pass the function itself
         onFetchDataForDate={fetchDataForDate}     // Pass the function itself
         datePickerRef={datePickerRef}
-        compositeMetrics={compositeMetrics} // For comparison display when TM not active
+        compositeMetrics={compositeMetrics} // This is the current live composite metrics
+        currentDataDetails={currentDataDetails} // Pass current data details
       />
 
-      {!timeMachineActive && currentDataDetails && <CurrentDataSummary details={currentDataDetails} />}
+      {/* CurrentDataSummary component usage is removed from here */}
 
       <div className="bg-white p-4 rounded-lg shadow mb-6 mt-6"> {/* Added mt-6 for spacing */}
         <p className="text-gray-700 mb-4">

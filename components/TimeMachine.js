@@ -9,9 +9,17 @@ function TimeMachine({
   onActivateTimeMachine,
   onFetchDataForDate,
   datePickerRef, // Pass the ref from App.js
-  compositeMetrics // Pass current composite metrics for comparison display
+  compositeMetrics, // Current composite metrics from App.js (live data)
+  currentDataDetails // Details of the current, non-time-machine data from App.js
 }) {
   const [historicalTableOpen, setHistoricalTableOpen] = useState(false);
+
+  // Determine what to display: historical point or current data details
+  const displayDetails = timeMachineActive && selectedTimePoint
+    ? selectedTimePoint
+    : (!timeMachineActive && currentDataDetails ? currentDataDetails : null);
+
+  // const isDisplayingCurrentData = !timeMachineActive && currentDataDetails; // Can be used for specific conditional rendering if needed
 
   useEffect(() => {
     // Ensure datePickerRef.current exists and flatpickr hasn't been initialized on it yet
@@ -61,37 +69,46 @@ function TimeMachine({
   }, [selectedTimePoint, selectedDate, timeMachineActive, datePickerRef]);
 
 
-  if (!timeMachineData) return <p>Loading time machine data...</p>;
+  // if (!timeMachineData && !currentDataDetails) return <p>Loading time machine data or current details...</p>;
+  // If TM is not active and there are no current details, it might mean initial load before first fetch.
+  if (timeMachineActive && !timeMachineData) return <p>Loading time machine historical data...</p>;
+
 
   return (
     <div className="bg-white p-4 rounded-lg shadow">
+      {/* Time Machine Controls - Only show if TM can be activated or is active */}
+      {(timeMachineData || !timeMachineActive) && (
       <div className="mb-4">
         <div className="flex flex-wrap items-center justify-between gap-3 p-2 bg-gray-50 rounded">
           <div className="flex flex-wrap items-center gap-3">
             <h3 className="text-lg font-medium text-gray-900 mr-2">
               <span role="img" aria-label="time machine">⏰</span> Bitcoin Time Machine
             </h3>
+            {/* Date picker is part of TM functionality, enable/show when TM is usable */}
             <div className="flex items-center">
               <div className="text-sm font-medium text-gray-700 mr-2">Date:</div>
               <div className="relative">
                 <input
-                  ref={datePickerRef} // Ref is attached here
+                  ref={datePickerRef}
                   type="text"
-                  placeholder="Select a date (since 2017)" // Updated placeholder
+                  placeholder="Select a date (since 2017)"
                   className="px-2 py-1 border border-gray-300 rounded text-sm"
+                  disabled={!timeMachineData} // Disable if no historical data to pick against initially
                 />
               </div>
             </div>
           </div>
-          <button
-            onClick={() => setHistoricalTableOpen(!historicalTableOpen)}
-            className="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm font-medium text-gray-700"
-          >
-            {historicalTableOpen ? 'Hide Historical Events' : 'Show Historical Events'}
-          </button>
+          {timeMachineData && ( // Only show button if historical data is available
+            <button
+              onClick={() => setHistoricalTableOpen(!historicalTableOpen)}
+              className="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm font-medium text-gray-700"
+            >
+              {historicalTableOpen ? 'Hide Historical Events' : 'Show Historical Events'}
+            </button>
+          )}
           {timeMachineActive && (
             <span className={`text-xs font-medium px-2.5 py-0.5 rounded bg-purple-100 text-purple-800 ml-auto`}>
-              {selectedTimePoint && selectedTimePoint.name ? // Check if name exists to differentiate predefined from custom
+              {selectedTimePoint && selectedTimePoint.name ?
                 `Viewing: ${selectedTimePoint.name} (${new Date(selectedTimePoint.date).toLocaleDateString()})` :
                 selectedDate ? `Viewing: Custom Date (${new Date(selectedDate).toLocaleDateString()})` :
                 'Time Machine Active'
@@ -99,46 +116,95 @@ function TimeMachine({
             </span>
           )}
         </div>
+      </div>
+      )}
 
-        {!timeMachineActive && compositeMetrics && compositeMetrics.cos ? ( // Check compositeMetrics.cos as well
-          <div className="bg-blue-50 p-2 rounded text-sm flex flex-wrap items-center justify-between">
-            <div className="font-medium text-blue-800">Current Metrics:</div>
-            <div className="flex space-x-4">
-              <div>
-                <span className="text-gray-600">
-                  COS Monthly/Weekly:
-                  <span className="ml-1 text-gray-400 cursor-help" title="Composite Overbought Score - Combines all indicators with weighted importance. Values above 75 suggest extreme overbought conditions.">ⓘ</span>
-                </span>
-                <span className={compositeMetrics.cos.monthly > 75 || compositeMetrics.cos.weekly > 75 ? 'ml-1 font-medium text-red-600' : 'ml-1 font-medium text-blue-600'}>
-                  {compositeMetrics.cos.monthly.toFixed(1)} / {compositeMetrics.cos.weekly.toFixed(1)}
-                </span>
-                {compositeMetrics.cos.monthly > 90 || compositeMetrics.cos.weekly > 90 ?
-                  <span className="ml-1 text-red-500">⚠️</span> :
-                  null}
-              </div>
-              <div>
-                <span className="text-gray-600">
-                  BSI Monthly/Weekly:
-                  <span className="ml-1 text-gray-400 cursor-help" title="Bull Strength Index - Measures the strength of the bullish trend. Values above 75% indicate a strong bullish trend, 50-75% a moderate trend, and below 50% a weak or bearish trend.">ⓘ</span>
-                </span>
-                <span className={compositeMetrics.bsi.monthly > 50 || compositeMetrics.bsi.weekly > 50 ? 'ml-1 font-medium text-red-600' : 'ml-1 font-medium text-blue-600'}>
-                  {compositeMetrics.bsi.monthly.toFixed(0)}% / {compositeMetrics.bsi.weekly.toFixed(0)}%
-                </span>
-                {compositeMetrics.bsi.monthly > 75 || compositeMetrics.bsi.weekly > 75 ?
-                  <span className="ml-1 text-red-500">⚠️</span> :
-                  null}
+      {/* Unified Display Area for Current or Historical Data */}
+      {displayDetails && (
+        <div className="bg-gray-100 p-4 rounded-lg shadow mb-6">
+          <h2 className="text-xl font-semibold mb-2">{displayDetails.name || 'Data Details'}</h2>
+          {displayDetails.price !== undefined && displayDetails.price !== null && (
+            <p className="text-lg">
+              <strong>Price:</strong>
+              {typeof displayDetails.price === 'number' ? ` $${displayDetails.price.toFixed(2)}` : ` ${displayDetails.price}`}
+            </p>
+          )}
+          <p className="text-sm text-gray-600">{displayDetails.description || ''}</p>
+          <p className="text-sm text-gray-500 mt-1">
+            Last updated: {new Date(displayDetails.date || displayDetails.lastUpdate).toLocaleString()}
+          </p>
+
+          {/* Outcomes Display */}
+          {displayDetails.outcomes && Object.keys(displayDetails.outcomes).length > 0 && (
+            <div className="mt-3">
+              <h3 className="text-md font-semibold">Price Outcomes:</h3>
+              <ul className="list-disc list-inside text-sm">
+                {Object.entries(displayDetails.outcomes).map(([period, outcome]) => (
+                  <li key={period}>
+                    {period}: {outcome.direction || 'N/A'}
+                    ({outcome.percentage !== null && outcome.percentage !== undefined ? outcome.percentage.toFixed(2) : 'N/A'}%)
+                    {outcome.price !== null && outcome.price !== undefined ? ` (Target: $${outcome.price.toFixed(2)})` : ''}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Display Composite Metrics of the selectedTimePoint or currentDataDetails */}
+          {displayDetails.compositeMetrics && displayDetails.compositeMetrics.cos && (
+            <div className="mt-3">
+              <h3 className="text-md font-semibold">Composite Metrics for this view:</h3>
+               <div className="flex space-x-4 text-sm">
+                <div>
+                    <span className="text-gray-600">COS (M/W): </span>
+                    <span className={displayDetails.compositeMetrics.cos.monthly > 75 || displayDetails.compositeMetrics.cos.weekly > 75 ? 'font-medium text-red-600' : 'font-medium text-blue-600'}>
+                    {displayDetails.compositeMetrics.cos.monthly.toFixed(1)} / {displayDetails.compositeMetrics.cos.weekly.toFixed(1)}
+                    </span>
+                </div>
+                <div>
+                    <span className="text-gray-600">BSI (M/W): </span>
+                    <span className={displayDetails.compositeMetrics.bsi.monthly > 50 || displayDetails.compositeMetrics.bsi.weekly > 50 ? 'font-medium text-red-600' : 'font-medium text-blue-600'}>
+                    {displayDetails.compositeMetrics.bsi.monthly.toFixed(0)}% / {displayDetails.compositeMetrics.bsi.weekly.toFixed(0)}%
+                    </span>
+                </div>
               </div>
             </div>
-            <div className="text-xs text-gray-500">
-              Compare current metrics with historical events below
+          )}
+        </div>
+      )}
+
+      {/* Comparison with Live/Current Composite Metrics - Only if TM is active and a historical point is selected */}
+      {timeMachineActive && selectedTimePoint && compositeMetrics && compositeMetrics.cos && (
+        <div className="bg-blue-50 p-2 rounded text-sm flex flex-wrap items-center justify-between mb-4">
+          <div className="font-medium text-blue-800">Compare with Current Live Metrics:</div>
+          <div className="flex space-x-4">
+            <div>
+              <span className="text-gray-600">
+                COS M/W:
+                <span className="ml-1 text-gray-400 cursor-help" title="Composite Overbought Score - Current live data.">ⓘ</span>
+              </span>
+              <span className={compositeMetrics.cos.monthly > 75 || compositeMetrics.cos.weekly > 75 ? 'ml-1 font-medium text-red-600' : 'ml-1 font-medium text-blue-600'}>
+                {compositeMetrics.cos.monthly.toFixed(1)} / {compositeMetrics.cos.weekly.toFixed(1)}
+              </span>
+            </div>
+            <div>
+              <span className="text-gray-600">
+                BSI M/W:
+                <span className="ml-1 text-gray-400 cursor-help" title="Bull Strength Index - Current live data.">ⓘ</span>
+              </span>
+              <span className={compositeMetrics.bsi.monthly > 50 || compositeMetrics.bsi.weekly > 50 ? 'ml-1 font-medium text-red-600' : 'ml-1 font-medium text-blue-600'}>
+                {compositeMetrics.bsi.monthly.toFixed(0)}% / {compositeMetrics.bsi.weekly.toFixed(0)}%
+              </span>
             </div>
           </div>
-        ) : null}
-      </div>
+        </div>
+      )}
 
-      {historicalTableOpen ? (
+      {/* Historical Events Table - only show if data exists and button is toggled */}
+      {timeMachineData && historicalTableOpen && (
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
+            {/* ... table head ... */}
             <thead className="bg-gray-50">
               <tr>
                 <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
@@ -221,71 +287,16 @@ function TimeMachine({
             </tbody>
           </table>
         </div>
-      ) : (
-        <div className="text-center py-4 text-sm text-gray-500 bg-gray-50 rounded">
-          Click "Show Historical Events" to view significant Bitcoin market events.
+      )}
+      {timeMachineData && !historicalTableOpen && !timeMachineActive && (
+         <div className="text-center py-4 text-sm text-gray-500 bg-gray-50 rounded">
+          Click "Show Historical Events" to explore past market conditions.
         </div>
       )}
 
-      {selectedTimePoint && (
-        <div className="mt-4 p-3 bg-gray-50 rounded text-sm">
-          <p className="font-medium mb-2">{selectedTimePoint.description}</p>
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-2 text-xs">
-            <div className="p-2 bg-white rounded shadow-sm">
-              <div className="font-medium mb-1">Price at Event</div>
-              <div className="text-lg">${selectedTimePoint.price ? selectedTimePoint.price.toLocaleString() : (selectedTimePoint.price === 0 ? '0.00' : 'Unknown')}</div>
-            </div>
-            
-            <div className="p-2 bg-blue-50 rounded shadow-sm">
-                <div className="font-medium mb-1">COS Monthly/Weekly</div>
-                <div className="text-lg text-blue-600">
-                {selectedTimePoint.compositeMetrics.cos.monthly.toFixed(1)} / {selectedTimePoint.compositeMetrics.cos.weekly.toFixed(1)}
-                </div>
-                <div className="text-xs text-gray-500">
-                {selectedTimePoint.compositeMetrics.cos.monthly > 75 || selectedTimePoint.compositeMetrics.cos.weekly > 75 ?
-                    'Extreme overbought' : 'Normal range'}
-                </div>
-            </div>
-
-            <div className="p-2 bg-blue-50 rounded shadow-sm">
-                <div className="font-medium mb-1">BSI Monthly/Weekly</div>
-                <div className="text-lg text-blue-600">
-                {selectedTimePoint.compositeMetrics.bsi.monthly.toFixed(0)}% / {selectedTimePoint.compositeMetrics.bsi.weekly.toFixed(0)}%
-                </div>
-                <div className="text-xs text-gray-500">
-                {selectedTimePoint.compositeMetrics.bsi.monthly > 75 || selectedTimePoint.compositeMetrics.bsi.weekly > 75 ?
-                    'Strong bullish trend' :
-                    selectedTimePoint.compositeMetrics.bsi.monthly > 50 || selectedTimePoint.compositeMetrics.bsi.weekly > 50 ?
-                    'Moderate bullish trend' : 'Weak or bearish trend'}
-                </div>
-            </div>
-            {/* Iterate over outcomes safely */}
-            {['1M', '6M', '12M'].map(period => {
-                const outcome = selectedTimePoint.outcomes ? selectedTimePoint.outcomes[period] : null;
-                const bgColor = outcome ? (outcome.direction === 'up' ? 'bg-green-50' : outcome.direction === 'down' ? 'bg-red-50' : 'bg-gray-50') : 'bg-gray-50';
-                const textColor = outcome ? (outcome.direction === 'up' ? 'text-green-600' : outcome.direction === 'down' ? 'text-red-600' : 'text-gray-500') : 'text-gray-500';
-                
-                return (
-                    <div key={period} className={`p-2 rounded shadow-sm ${bgColor}`}>
-                        <div className="font-medium mb-1">{period} Later</div>
-                        {outcome && outcome.direction && outcome.direction !== 'unknown' ? (
-                        <div>
-                            <div className="text-lg">
-                                <span className={textColor}>
-                                    {outcome.direction === 'up' ? '↑' : '↓'} {outcome.percentage}%
-                                </span>
-                            </div>
-                            <div>${outcome.price ? outcome.price.toLocaleString() : (outcome.price === 0 ? '0.00': 'N/A')}</div>
-                        </div>
-                        ) : (
-                        <div className="text-gray-500 italic">{outcome && outcome.price === 0 && outcome.direction === 'unknown' ? 'Future / Not Occurred' : 'N/A'}</div>
-                        )}
-                    </div>
-                );
-            })}
-          </div>
-        </div>
-      )}
+      {/* Detailed view of selectedTimePoint's indicators and outcomes - only if TM is active */}
+      {/* This section is removed as its content is now part of displayDetails block above */}
+      {/* {selectedTimePoint && ( <div className="mt-4 p-3 bg-gray-50 rounded text-sm"> ... </div> )} */}
     </div>
   );
 }

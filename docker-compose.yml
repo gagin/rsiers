@@ -31,7 +31,7 @@ services:
     image: python:3.12-slim # Using python image just to serve static files
     container_name: btc-dashboard-frontend
     ports:
-      - "8000:8000"
+      - "8888:8888"
     volumes:
       - ./:/app # Mounts index.html and components/
     working_dir: /app
@@ -40,7 +40,7 @@ services:
         condition: service_started # Changed from service_healthy to allow frontend to start sooner
                                   # Healthcheck on backend will still gate traffic effectively.
     restart: unless-stopped
-    command: python -m http.server 8000
+    command: python -m http.server 8888
 
 volumes:
   bitcoin_db_data: # Defines the named volume for the database

@@ -5,7 +5,7 @@ PYTHON := python3
 # Default port for the backend server (Flask app in backend/main.py)
 BACKEND_PORT := 5001
 # Default port for the frontend server (simple HTTP server for index.html)
-FRONTEND_PORT := 8000
+FRONTEND_PORT := 8888
 
 .PHONY: help install run run-frontend run-backend clean \
         docker-build docker-run docker-stop \
