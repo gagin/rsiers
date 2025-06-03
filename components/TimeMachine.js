@@ -119,57 +119,84 @@ function TimeMachine({
       </div>
       )}
 
-      {/* Unified Display Area for Current or Historical Data */}
+      {/* Unified Display Area for Current or Historical Data - NEW CARD LAYOUT */}
       {displayDetails && (
-        <div className="bg-gray-100 p-4 rounded-lg shadow mb-6">
-          <h2 className="text-xl font-semibold mb-2">{displayDetails.name || 'Data Details'}</h2>
-          {displayDetails.price !== undefined && displayDetails.price !== null && (
-            <p className="text-lg">
-              <strong>Price:</strong>
-              {typeof displayDetails.price === 'number' ? ` $${displayDetails.price.toFixed(2)}` : ` ${displayDetails.price}`}
-            </p>
-          )}
-          <p className="text-sm text-gray-600">{displayDetails.description || ''}</p>
-          <p className="text-sm text-gray-500 mt-1">
-            Last updated: {new Date(displayDetails.date || displayDetails.lastUpdate).toLocaleString()}
-          </p>
+        <div className="mt-4 p-3 bg-gray-50 rounded text-sm shadow-md">
+          {/* Optional: Display title if relevant, e.g., displayDetails.name */}
+          {/* <h3 className="text-xl font-semibold mb-2">{displayDetails.name}</h3> */}
 
-          {/* Outcomes Display */}
-          {displayDetails.outcomes && Object.keys(displayDetails.outcomes).length > 0 && (
-            <div className="mt-3">
-              <h3 className="text-md font-semibold">Price Outcomes:</h3>
-              <ul className="list-disc list-inside text-sm">
-                {Object.entries(displayDetails.outcomes).map(([period, outcome]) => (
-                  <li key={period}>
-                    {period}: {outcome.direction || 'N/A'}
-                    ({outcome.percentage !== null && outcome.percentage !== undefined ? outcome.percentage.toFixed(2) : 'N/A'}%)
-                    {outcome.price !== null && outcome.price !== undefined ? ` (Target: $${outcome.price.toFixed(2)})` : ''}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
+          {displayDetails.description && <p className="font-medium mb-3">{displayDetails.description}</p>}
 
-          {/* Display Composite Metrics of the selectedTimePoint or currentDataDetails */}
-          {displayDetails.compositeMetrics && displayDetails.compositeMetrics.cos && (
-            <div className="mt-3">
-              <h3 className="text-md font-semibold">Composite Metrics for this view:</h3>
-               <div className="flex space-x-4 text-sm">
-                <div>
-                    <span className="text-gray-600">COS (M/W): </span>
-                    <span className={displayDetails.compositeMetrics.cos.monthly > 75 || displayDetails.compositeMetrics.cos.weekly > 75 ? 'font-medium text-red-600' : 'font-medium text-blue-600'}>
-                    {displayDetails.compositeMetrics.cos.monthly.toFixed(1)} / {displayDetails.compositeMetrics.cos.weekly.toFixed(1)}
-                    </span>
-                </div>
-                <div>
-                    <span className="text-gray-600">BSI (M/W): </span>
-                    <span className={displayDetails.compositeMetrics.bsi.monthly > 50 || displayDetails.compositeMetrics.bsi.weekly > 50 ? 'font-medium text-red-600' : 'font-medium text-blue-600'}>
-                    {displayDetails.compositeMetrics.bsi.monthly.toFixed(0)}% / {displayDetails.compositeMetrics.bsi.weekly.toFixed(0)}%
-                    </span>
-                </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 text-xs">
+
+            {/* Price at Event */}
+            <div className="p-2 bg-white rounded shadow-sm">
+              <div className="font-medium mb-1 text-gray-700">Price at Event</div>
+              <div className="text-2xl font-bold text-gray-900">
+                {typeof displayDetails.price === 'number' ? `$${displayDetails.price.toFixed(2)}` : (displayDetails.price || 'N/A')}
               </div>
+              {(displayDetails.date || displayDetails.lastUpdate) && <div className="text-xs text-gray-500 mt-1">Date: {new Date(displayDetails.date || displayDetails.lastUpdate).toLocaleDateString()}</div>}
             </div>
-          )}
+
+            {/* COS Monthly/Weekly */}
+            {displayDetails.compositeMetrics && displayDetails.compositeMetrics.cos && (
+              <div className="p-2 bg-blue-50 rounded shadow-sm">
+                <div className="font-medium mb-1 text-blue-700">COS Monthly / Weekly</div>
+                <div className="text-xl font-semibold text-blue-600">
+                  {displayDetails.compositeMetrics.cos.monthly?.toFixed(1) ?? 'N/A'} / {displayDetails.compositeMetrics.cos.weekly?.toFixed(1) ?? 'N/A'}
+                </div>
+                {/* <div className="text-xs text-gray-500">Normal range</div> */}
+              </div>
+            )}
+
+            {/* BSI Monthly/Weekly */}
+            {displayDetails.compositeMetrics && displayDetails.compositeMetrics.bsi && (
+              <div className="p-2 bg-indigo-50 rounded shadow-sm">
+                <div className="font-medium mb-1 text-indigo-700">BSI Monthly / Weekly</div>
+                <div className="text-xl font-semibold text-indigo-600">
+                  {(displayDetails.compositeMetrics.bsi.monthly?.toFixed(0) ?? 'N/A')}% / {(displayDetails.compositeMetrics.bsi.weekly?.toFixed(0) ?? 'N/A')}%
+                </div>
+                {/* <div className="text-xs text-gray-500">Weak or bearish trend</div> */}
+              </div>
+            )}
+
+            {/* Outcomes */}
+            {['1M', '6M', '12M'].map(period => {
+              const outcome = displayDetails.outcomes && displayDetails.outcomes[period];
+              // Only render if outcome has a defined price; allows for future data points where outcomes are not yet known
+              if (!outcome || outcome.price === undefined || outcome.price === null) return null;
+
+              const percentage = outcome.percentage;
+              const isUp = outcome.direction === 'up';
+              const isDown = outcome.direction === 'down';
+              // Determine color and symbol based on direction and significance
+              let colorClass = 'text-gray-600';
+              let symbol = '';
+              // Check if percentage is a number and significant before assigning colors/symbols
+              if (typeof percentage === 'number') {
+                if (isUp && percentage > 0.01) {
+                    colorClass = 'text-green-600';
+                    symbol = '↑ ';
+                } else if (isDown && percentage < -0.01) {
+                    colorClass = 'text-red-600';
+                    symbol = '↓ ';
+                }
+              }
+
+              return (
+                <div key={period} className={`p-2 rounded shadow-sm ${isUp && typeof percentage === 'number' && percentage > 0.01 ? 'bg-green-50' : isDown && typeof percentage === 'number' && percentage < -0.01 ? 'bg-red-50' : 'bg-gray-100'}`}>
+                  <div className={`font-medium mb-1 ${isUp && typeof percentage === 'number' && percentage > 0.01 ? 'text-green-700' : isDown && typeof percentage === 'number' && percentage < -0.01 ? 'text-red-700' : 'text-gray-700'}`}>{period} Later</div>
+                  {percentage !== undefined && percentage !== null && (
+                    <div className={`text-lg font-semibold ${colorClass}`}>
+                        {symbol}
+                        {typeof percentage === 'number' ? `${Math.abs(percentage).toFixed(1)}%` : 'N/A'}
+                    </div>
+                  )}
+                  <div className="text-sm text-gray-800">{typeof outcome.price === 'number' ? `$${outcome.price.toFixed(2)}` : (outcome.price ?? 'N/A')}</div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 

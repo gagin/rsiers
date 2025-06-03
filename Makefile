@@ -7,7 +7,7 @@ BACKEND_PORT := 5001
 # Default port for the frontend server (simple HTTP server for index.html)
 FRONTEND_PORT := 8888
 
-.PHONY: help install run run-frontend run-backend clean \
+.PHONY: help install run run-frontend run-backend clean stop \
         docker-build docker-run docker-stop \
         init-db import-csv check-db load-gaps \
         manual-fill-main manual-fill-specific import-all-sources
@@ -21,6 +21,7 @@ help:
 	@echo "  make run                   - Run both backend (backend/main.py) and frontend servers"
 	@echo "  make run-frontend          - Run only the frontend server"
 	@echo "  make run-backend           - Run only the backend server (backend/main.py)"
+	@echo "  make stop                  - Stop any running frontend/backend servers started independently"
 	@echo "  make init-db               - Initialize/Verify the database schema"
 	@echo "  make import-csv            - Import data from CSV files in ./csv/ into the database"
 	@echo "  make manual-fill-main      - Run the primary manual data filler (scripts/manual_data_filler.py)"
@@ -141,3 +142,11 @@ docker-run:
 docker-stop:
 	@echo "Stopping Docker containers..."
 	docker-compose down
+
+stop:
+	@echo "Attempting to stop servers..."
+	@echo "Stopping process on frontend port $(FRONTEND_PORT)..."
+	@-kill $(shell lsof -t -i:$(FRONTEND_PORT) 2>/dev/null) 2>/dev/null || echo "No process found on frontend port $(FRONTEND_PORT) or kill failed."
+	@echo "Stopping process on backend port $(BACKEND_PORT)..."
+	@-kill $(shell lsof -t -i:$(BACKEND_PORT) 2>/dev/null) 2>/dev/null || echo "No process found on backend port $(BACKEND_PORT) or kill failed."
+	@echo "Stop command finished."
