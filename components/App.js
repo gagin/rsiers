@@ -107,6 +107,7 @@ function App() {
         name: data.name,
         description: data.description,
         outcomes: data.outcomes,
+        compositeMetrics: data.compositeMetrics, // Added this line
         lastUpdate: data.lastUpdate
       });
       if(data.error_message) { 
@@ -146,7 +147,15 @@ function App() {
             price: 'N/A',
             name: 'Mock Data Active',
             description: 'Displaying mock data due to backend unavailability.',
-            outcomes: {},
+            outcomes: { // Provide a default structure for outcomes as well
+                '1M': { direction: null, percentage: null, price: null },
+                '6M': { direction: null, percentage: null, price: null },
+                '12M': { direction: null, percentage: null, price: null }
+            },
+            compositeMetrics: {
+                cos: { monthly: 0, weekly: 0 },
+                bsi: { monthly: 0, weekly: 0 }
+            }, // Added this
             lastUpdate: new Date().toISOString()
         });
         setError('Backend server and historical data unavailable. Displaying mock data.');
