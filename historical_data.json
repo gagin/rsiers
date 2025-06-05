@@ -447,6 +447,134 @@
           "weekly": 77.94912514984591
         }
       }
+    },
+{
+  "id": 8,
+  "date": "2024-09-05",
+  "name": "Last bottom before growth",
+  "price": 53948.30,
+  "description": "Last bottom before growth of 2024-2025 cycle top",
+  "outcomes": {
+    "1M": {
+      "direction": "up",
+      "percentage": 16.4,
+      "price": 62809.30
+    },
+    "6M": {
+      "direction": "up",
+      "percentage": 66.7,
+      "price": 89916.80
+    },
+    "12M": {
+      "direction": "n/a",
+      "percentage": 0.0,
+      "price": 0.00
     }
+  },
+  "indicators": {
+    "rsi": {
+      "monthly": 60,
+      "weekly": 44
+    },
+    "stochRsi": {
+      "monthly": 2,
+      "weekly": 21
+    },
+    "mfi": {
+      "monthly": 100,
+      "weekly": 57
+    },
+    "crsi": {
+      "monthly": 25,
+      "weekly": 17
+    },
+    "williamsR": {
+      "monthly": -40.43,
+      "weekly": -78.77
+    },
+    "rvi": {
+      "monthly": 0.06,
+      "weekly": -0.03
+    },
+    "adaptiveRsi": {
+      "monthly": 96,
+      "weekly": 76
+    }
+  },
+  "compositeMetrics": {
+    "cos": {
+      "monthly": 44.3,
+      "weekly": 9.8
+    },
+    "bsi": {
+      "monthly": 33.3,
+      "weekly": 9.1
+    }
+  }
+},
+   {
+  "id": 9,
+  "date": "2024-12-17",
+  "name": "First peak of 2025 cycle",
+  "price": 106151.90,
+  "description": "New consolidation level is set",
+  "outcomes": {
+    "1M": {
+      "direction": "down",
+      "percentage": 1.9,
+      "price": 104089.80
+    },
+    "6M": {
+      "direction": "n/a",
+      "percentage": 0.0,
+      "price": 0.00
+    },
+    "12M": {
+      "direction": "n/a",
+      "percentage": 0.0,
+      "price": 0.00
+    }
+  },
+  "indicators": {
+    "rsi": {
+      "monthly": 83,
+      "weekly": 80
+    },
+    "stochRsi": {
+      "monthly": 88,
+      "weekly": 100
+    },
+    "mfi": {
+      "monthly": 100,
+      "weekly": 96
+    },
+    "crsi": {
+      "monthly": 81,
+      "weekly": 80
+    },
+    "williamsR": {
+      "monthly": -2.89,
+      "weekly": -4.23
+    },
+    "rvi": {
+      "monthly": 0.19,
+      "weekly": 0.31
+    },
+    "adaptiveRsi": {
+      "monthly": 100,
+      "weekly": 99
+    }
+  },
+  "compositeMetrics": {
+    "cos": {
+      "monthly": 100.0,
+      "weekly": 100.0
+    },
+    "bsi": {
+      "monthly": 93.6,
+      "weekly": 93.5
+    }
+  }
+}
   ]
 }
